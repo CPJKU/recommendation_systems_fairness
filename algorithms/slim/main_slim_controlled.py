@@ -1,6 +1,5 @@
 import os
 import pickle
-import sys
 from datetime import datetime
 
 from scipy import sparse as sp
@@ -9,7 +8,6 @@ from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-sys.path.append(os.path.abspath('../../'))
 from algorithms.slim.slim import SLIM
 from conf import SEEDS, TRAITS, LOG_VAL_STR, LOG_TE_STR, DATA_PATH, PERS_PATH, OUT_DIR
 from utils.data_splitter import DataSplitter

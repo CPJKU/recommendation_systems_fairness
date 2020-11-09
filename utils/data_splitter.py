@@ -23,20 +23,20 @@ class DataSplitter():
     DIR_NAME = "{}/{}"
     DIR_TR_NAME = "{}/{}/{}"
 
-    def __init__(self, data_path, pers_path=None, out_dir='../../data/', perc_train=80):
+    def __init__(self, data_path, demo_path=None, out_dir='../../data/', perc_train=80):
         '''
         :param data_path: path to the file containing interactions user_id, track_id
-        :param pers_path: path to the personality file containing user_id,ope,con,ext,agr,neu
+        :param demo_path: path to the personality file containing user_id,ope,con,ext,agr,neu
         :param out_dir: path where the generated dataset is saved
         :param perc_train: % of training users
         '''
         self.data_path = data_path
-        self.pers_path = pers_path
+        self.pers_path = demo_path
 
         self.inter = pd.read_csv(self.data_path)
 
-        if self.pers_path:
-            self.pers = pd.read_csv(self.pers_path)
+        if self.demo_path:
+            self.demo = pd.read_csv(self.demo_path)
 
         self.out_dir = out_dir
 
@@ -121,6 +121,9 @@ class DataSplitter():
         return pandas_data, scipy_data, new_tids
 
     def split(self, seed: int):
+        '''
+        Main splitting procedure. Users are sampled at random.
+        '''
 
         np.random.seed(seed)
 
@@ -152,7 +155,9 @@ class DataSplitter():
         return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
 
     def trait_split(self, seed: int, trait: str):
-
+        '''
+        To ignore for now.
+        '''
         np.random.seed(seed)
 
         # Extract low and high user_ids

@@ -1,9 +1,7 @@
 import os
 import pickle
-import sys
 from datetime import datetime
 
-sys.path.append(os.path.abspath('../../'))
 from scipy import sparse as sp
 from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import ParameterGrid
