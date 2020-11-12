@@ -31,12 +31,13 @@ class DataSplitter():
         :param perc_train: % of training users
         '''
         self.data_path = data_path
-        self.pers_path = demo_path
+        self.demo_path = demo_path
 
-        self.inter = pd.read_csv(self.data_path)
+        self.inter = pd.read_csv(self.data_path, sep='\t', names=['user_id', 'track_id', 'play_count'])[
+            ['user_id', 'track_id']]
 
         if self.demo_path:
-            self.demo = pd.read_csv(self.demo_path)
+            self.demo = pd.read_csv(self.demo_path, sep='\t', names=['user_name', 'country', 'age', 'timestamp'])
 
         self.out_dir = out_dir
 
@@ -154,14 +155,16 @@ class DataSplitter():
 
         return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
 
-    def trait_split(self, seed: int, trait: str):
+    def trait_split(self, seed: int, demo_trait: str):
         '''
-        To ignore for now.
+        Users are sampled equally within the specified category
+        TODO: NOT YET FINISHED
         '''
         np.random.seed(seed)
 
         # Extract low and high user_ids
-        low_uids, high_uids, = self.get_low_high_uids(trait)
+
+        low_uids, high_uids, = self.get_low_high_uids(demo_trait)
 
         # Permute arrays
         low_uids = permute(low_uids)
@@ -183,7 +186,7 @@ class DataSplitter():
         pandas_data, scipy_data, new_tids = self._split(tr_uids, vd_uids, te_uids)
 
         # Saving data
-        dir_name = DataSplitter.DIR_TR_NAME.format(os.path.basename(self.data_path).split('.')[0], trait, seed)
+        dir_name = DataSplitter.DIR_TR_NAME.format(os.path.basename(self.data_path).split('.')[0], demo_trait, seed)
         dir_path = os.path.join(self.out_dir, dir_name)
         pandas_dir_path, scipy_dir_path, tids_path = save_data(dir_path, pandas_data, scipy_data, new_tids)
 
@@ -246,7 +249,55 @@ class DataSplitter():
         high_uids = self.pers[self.pers[trait] >= median].user_id.values
         return low_uids, high_uids
 
+    def get_user_groups(self, demo_trait: str):
+
+        if not hasattr(self, "demo"):
+            raise Exception("No path to user demographic file!")
+
+        # Split by gender
+        if demo_trait == 'gender':
+            m_uids = self.demo[self.demo.gender == 'm'].index.values
+            f_uids = self.demo[self.demo.gender == 'f'].index.values
+            return [m_uids,f_uids]
+        else:
+            raise ValueError('Demographic trait not yet implemented')
+
     def get_low_high_indxs(self, pandas_dir_path: str, uids_dic_path: str, trait=None):
+        '''
+        If trait is none, then it's assumed that uids_dic_path already has the splitted uids
+        :param pandas_dir_path:
+        :param uids_dic_path:
+        :param trait:
+        :return:
+        '''
+
+        vd_data = pd.read_csv(os.path.join(pandas_dir_path, 'vd_data.csv'))[
+            ['user_id', 'new_user_id']].drop_duplicates()
+        te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
+            ['user_id', 'new_user_id']].drop_duplicates()
+
+        uids_dic = pickle.load(open(uids_dic_path, 'rb'))
+        if trait:
+            low_uids, high_uids = self.get_low_high_uids(trait)
+            vd_low_uids = set(vd_data.user_id).intersection(low_uids)
+            vd_high_uids = set(vd_data.user_id).intersection(high_uids)
+            te_low_uids = set(te_data.user_id).intersection(low_uids)
+            te_high_uids = set(te_data.user_id).intersection(high_uids)
+        else:
+            vd_low_uids = set(uids_dic['vd_low_uids'])
+            vd_high_uids = set(uids_dic['vd_high_uids'])
+            te_low_uids = set(uids_dic['te_low_uids'])
+            te_high_uids = set(uids_dic['te_high_uids'])
+
+        # Extracting the indexes
+        vd_low_idxs = vd_data[vd_data.user_id.isin(vd_low_uids)].new_user_id.values
+        vd_high_idxs = vd_data[vd_data.user_id.isin(vd_high_uids)].new_user_id.values
+        te_low_idxs = te_data[te_data.user_id.isin(te_low_uids)].new_user_id.values
+        te_high_idxs = te_data[te_data.user_id.isin(te_high_uids)].new_user_id.values
+
+        return vd_low_idxs, vd_high_idxs, te_low_idxs, te_high_idxs
+
+    def get_user_groups_indxs(self, pandas_dir_path: str, uids_dic_path: str, trait=None):
         '''
         If trait is none, then it's assumed that uids_dic_path already has the splitted uids
         :param pandas_dir_path:

@@ -6,8 +6,7 @@ import torch
 from torch import nn
 from torch.nn import functional
 
-from algorithms.vae.model.multi_dae import MultiDAE
-from conf import TRAITS
+from algorithms.vae.model.multi_dae import MultiDAE, MultiDAEN
 from utils.eval import eval_proced, eval_metric
 
 
@@ -21,12 +20,8 @@ class MultiVAE(MultiDAE):
         list of values that defines the structure of the network on the decoder side
     q_dims : list
         list of values that defines the structure of the network on the encoder side (Optional)
-    act : nn.Layer (activation Function)
-        activation function to use in the network.
     dp: float
         dropout value
-    wd: float
-        weight decay as regularization (Optional)
     doanneal: bool
         True for annealing, False for fixed beta
     beta: float
@@ -35,8 +30,6 @@ class MultiVAE(MultiDAE):
         maximum value beta can reach (used for doanneal=True)
     betastep: int
         number of iteration on which to do the annealing  (used for doanneal=True)
-    low_high_indxs: dict
-        dictionary containing the indexes of the low group and high group for val and test data and acorss each trait
     """
 
     def __init__(self, hparams):
@@ -145,16 +138,7 @@ class MultiVAE(MultiDAE):
 
         full_metrics = dict()
         full_raw_metrics = dict()
-        for trait in TRAITS:
-            _, _, te_low_idxs, te_high_idxs = self.low_high_indxs[trait]
-            _, metrics, metrics_raw = eval_proced(logits, y, te_high_idxs, te_low_idxs, 'test')
-            # Changing the tag for some metrics!
-            metrics = {k if ('high' not in k and 'low' not in k) else k[:5] + trait + '_' + k[5:]: v for k, v in
-                       metrics.items()}
-            metrics_raw = {k if ('high' not in k and 'low' not in k) else trait + '_' + k: v for k, v in
-                           metrics_raw.items()}
-            full_metrics.update(metrics)
-            full_raw_metrics.update(metrics_raw)
+
 
         return {"full_metrics": full_metrics, 'full_raw_metrics': full_raw_metrics}
 
@@ -186,3 +170,89 @@ class MultiVAE(MultiDAE):
         self.logger.experiment.add_hparams(vars(self.hparams), metrics)
 
         return metrics
+
+
+class VAE_loss:
+
+    def __init__(self, betacap=0.5, betasteps=2000):
+        super().__init__()
+
+        self.betacap = betacap
+        self.betasteps = betasteps
+
+        self.curr_beta = 0.0
+        self.global_step = 0  # TODO:CHECK THIS
+
+    def __call__(self, logits, KL, y):
+        prob = functional.log_softmax(logits, dim=1)
+
+        neg_ll = - torch.mean(torch.sum(prob * y, dim=1))
+        weighted_KL = self.curr_beta * KL
+        loss = neg_ll + weighted_KL
+
+        #  Updating beta
+        self.curr_beta = min(self.betacap, self.global_step / self.betasteps)
+        return loss, neg_ll, weighted_KL
+
+
+class MultiVAEN(MultiDAEN):
+    """
+    Variational Autoencoders for Collaborative Filtering - Dawen Liang, Rahul G. Krishnan, Matthew D. Hoffman, Tony Jebara
+    https://arxiv.org/abs/1802.05814
+    Attributes
+    ---------
+    p_dims  : list
+        list of values that defines the structure of the network on the decoder side
+    q_dims : list
+        list of values that defines the structure of the network on the encoder side (Optional)
+    dp: float
+        dropout value
+    betacap: float
+        maximum value beta can reach (used for doanneal=True)
+    betastep: int
+        number of iteration on which to do the annealing  (used for doanneal=True)
+    """
+
+    def __init__(self, p_dims, q_dims=None, dp=0.5, betacap=0.5, betasteps=2000):
+        super().__init__(p_dims, q_dims, dp)
+
+        self.vae_loss = VAE_loss(betacap, betasteps)
+
+        # Overwrite the encoder
+        # Encoder #
+        enc = OrderedDict()
+        for i, (d_in, d_out) in enumerate(zip(self.q_dims[:-1], self.q_dims[1:])):
+            if i == len(self.q_dims) - 2:
+                d_out *= 2
+            enc["layer_{}".format(i)] = nn.Linear(d_in, d_out)
+
+            if i != len(self.q_dims) - 2:
+                enc["tanh_{}".format(i)] = nn.Tanh()
+
+        self.encoder = nn.Sequential(enc)
+
+    def forward(self, x):
+        # Encoder #
+        x = functional.normalize(x, 2, 1)
+        x = self.dropout(x)
+        x = self.encoder(x)
+        mu, logvar = x[:, :self.latent], x[:, self.latent:]
+
+        # Sampling #
+        z, KL = self._sampling(mu, logvar)
+
+        # Decoder #
+        z = self.decoder(z)
+
+        return z, KL
+
+    def _sampling(self, mu, logvar):
+        # KL loss
+        KL = torch.mean(torch.sum(0.5 * (-logvar + torch.exp(logvar) + mu ** 2 - 1), dim=1))
+
+        # Sampling #
+        std = torch.exp(0.5 * logvar)
+        epsilon = torch.randn_like(std)
+
+        z = mu + epsilon * std * self.training
+        return z, KL

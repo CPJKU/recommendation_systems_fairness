@@ -6,15 +6,15 @@ SEEDS = [
 
 UN_SEEDS = [
     6547893,
-    2034976,
-    2345303,
-    7887871,
-    1023468,
-    8812394,
-    2132395,
-    4444637,
-    7192837,
-    6574836,
+    #2034976,
+    #2345303,
+    #7887871,
+    #1023468,
+    #8812394,
+    #2132395,
+    #4444637,
+    #7192837,
+    #6574836,
 ]
 
 
@@ -39,7 +39,7 @@ LOG_TE_STR = '../../res/con/{}/{}/test/{}/{}'
 UN_LOG_VAL_STR = '../../res/un/{}/{}/val/{}'
 UN_LOG_TE_STR = '../../res/un/{}/{}/test/{}'
 
-DATA_PATH = '../../data/inter.csv'
-PERS_PATH = '../../data/pers.csv'
+DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/pc_gt_1/user_song_pc_gt_1_user_gte_10_song_gte_10.txt'
+PERS_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/pc_gt_1/user_demographics.txt'
 OUT_DIR = '../../data/seed_trait/'
 UN_OUT_DIR = '../../data/seed/'
