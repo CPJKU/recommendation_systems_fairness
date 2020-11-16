@@ -46,7 +46,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
 
     # Stacking training data and validation training data
     A = sp.csr_matrix(sp.vstack((sp_tr_data, sp_vd_tr_data)))
-
+    print(A.dtype)
     best_value = 0
     best_config = None
     # Running Hyperparameter search
@@ -120,5 +120,5 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
     #summ.flush()
 
     # Saving the best_config and results
-    pickle.dump(hparams, open(os.path.join(log_te_str, 'best_config.pkl'), 'wb'))
-    pickle.dump(full_raw_metrics, open(os.path.join(log_te_str, 'metrics_raw.pkl'), 'wb'))
+    #pickle.dump(hparams, open(os.path.join(log_te_str, 'best_config.pkl'), 'wb'))
+    #pickle.dump(full_raw_metrics, open(os.path.join(log_te_str, 'metrics_raw.pkl'), 'wb'))

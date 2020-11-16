@@ -7,7 +7,20 @@ import pandas as pd
 from utils.helper import idx_split, filt, random_item_splitter, playcounts, permute, sparsify, save_data
 
 
-class DataSplitter():
+class UserGroup:
+    '''
+    Holds information of a specific user group such as name of the group and the user ids
+    '''
+
+    def __init__(self, type: str, name: str, uids: np.ndarray):
+        self.type = type
+        self.name = name
+        self.uids = uids
+        self.te_indxs = None
+        self.vd_indxs = None
+
+
+class DataSplitter:
     '''
     Class used to generated the dataset in the following steps:
     - Splits the users in training (80%), validation (10%), and test (10%)
@@ -37,7 +50,8 @@ class DataSplitter():
             ['user_id', 'track_id']]
 
         if self.demo_path:
-            self.demo = pd.read_csv(self.demo_path, sep='\t', names=['user_name', 'country', 'age', 'timestamp'])
+            self.demo = pd.read_csv(self.demo_path, sep='\t',
+                                    names=['user_name', 'country', 'age', 'gender', 'timestamp'])
 
         self.out_dir = out_dir
 
@@ -239,16 +253,6 @@ class DataSplitter():
 
         return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
 
-    def get_low_high_uids(self, trait: str):
-
-        if not hasattr(self, "pers"):
-            raise Exception("No path to personality file!")
-        median = self.pers[trait].median()
-
-        low_uids = self.pers[self.pers[trait] < median].user_id.values
-        high_uids = self.pers[self.pers[trait] >= median].user_id.values
-        return low_uids, high_uids
-
     def get_user_groups(self, demo_trait: str):
 
         if not hasattr(self, "demo"):
@@ -256,18 +260,17 @@ class DataSplitter():
 
         # Split by gender
         if demo_trait == 'gender':
-            m_uids = self.demo[self.demo.gender == 'm'].index.values
+            m_uids = self.demo[self.demo.gender == 'm'].index.values  # TODO: Are these the same user ids?
             f_uids = self.demo[self.demo.gender == 'f'].index.values
-            return [m_uids,f_uids]
+            return [UserGroup('gender', 'm', m_uids), UserGroup('gender', 'f', f_uids)]
         else:
             raise ValueError('Demographic trait not yet implemented')
 
-    def get_low_high_indxs(self, pandas_dir_path: str, uids_dic_path: str, trait=None):
+    def get_user_groups_indxs(self, pandas_dir_path: str, uids_dic_path: str, demo_trait=None):
         '''
-        If trait is none, then it's assumed that uids_dic_path already has the splitted uids
         :param pandas_dir_path:
         :param uids_dic_path:
-        :param trait:
+        :param demo_trait:
         :return:
         '''
 
@@ -276,58 +279,17 @@ class DataSplitter():
         te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
             ['user_id', 'new_user_id']].drop_duplicates()
 
-        uids_dic = pickle.load(open(uids_dic_path, 'rb'))
-        if trait:
-            low_uids, high_uids = self.get_low_high_uids(trait)
-            vd_low_uids = set(vd_data.user_id).intersection(low_uids)
-            vd_high_uids = set(vd_data.user_id).intersection(high_uids)
-            te_low_uids = set(te_data.user_id).intersection(low_uids)
-            te_high_uids = set(te_data.user_id).intersection(high_uids)
+        # uids_dic = pickle.load(open(uids_dic_path, 'rb'))
+
+        if demo_trait:
+            user_groups = self.get_user_groups(demo_trait)
+            for user_group in user_groups:
+                user_group.vd_indxs = vd_data[
+                    vd_data.user_id.isin(set(vd_data.user_id).intersection(user_group.uids))].new_user_id.values
+                user_group.te_indxs = te_data[
+                    te_data.user_id.isin(set(te_data.user_id).intersection(user_group.uids))].new_user_id.values
         else:
-            vd_low_uids = set(uids_dic['vd_low_uids'])
-            vd_high_uids = set(uids_dic['vd_high_uids'])
-            te_low_uids = set(uids_dic['te_low_uids'])
-            te_high_uids = set(uids_dic['te_high_uids'])
+            raise ValueError('demo_trait has to be non-null. Not yet implemented!')
 
-        # Extracting the indexes
-        vd_low_idxs = vd_data[vd_data.user_id.isin(vd_low_uids)].new_user_id.values
-        vd_high_idxs = vd_data[vd_data.user_id.isin(vd_high_uids)].new_user_id.values
-        te_low_idxs = te_data[te_data.user_id.isin(te_low_uids)].new_user_id.values
-        te_high_idxs = te_data[te_data.user_id.isin(te_high_uids)].new_user_id.values
 
-        return vd_low_idxs, vd_high_idxs, te_low_idxs, te_high_idxs
-
-    def get_user_groups_indxs(self, pandas_dir_path: str, uids_dic_path: str, trait=None):
-        '''
-        If trait is none, then it's assumed that uids_dic_path already has the splitted uids
-        :param pandas_dir_path:
-        :param uids_dic_path:
-        :param trait:
-        :return:
-        '''
-
-        vd_data = pd.read_csv(os.path.join(pandas_dir_path, 'vd_data.csv'))[
-            ['user_id', 'new_user_id']].drop_duplicates()
-        te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
-            ['user_id', 'new_user_id']].drop_duplicates()
-
-        uids_dic = pickle.load(open(uids_dic_path, 'rb'))
-        if trait:
-            low_uids, high_uids = self.get_low_high_uids(trait)
-            vd_low_uids = set(vd_data.user_id).intersection(low_uids)
-            vd_high_uids = set(vd_data.user_id).intersection(high_uids)
-            te_low_uids = set(te_data.user_id).intersection(low_uids)
-            te_high_uids = set(te_data.user_id).intersection(high_uids)
-        else:
-            vd_low_uids = set(uids_dic['vd_low_uids'])
-            vd_high_uids = set(uids_dic['vd_high_uids'])
-            te_low_uids = set(uids_dic['te_low_uids'])
-            te_high_uids = set(uids_dic['te_high_uids'])
-
-        # Extracting the indexes
-        vd_low_idxs = vd_data[vd_data.user_id.isin(vd_low_uids)].new_user_id.values
-        vd_high_idxs = vd_data[vd_data.user_id.isin(vd_high_uids)].new_user_id.values
-        te_low_idxs = te_data[te_data.user_id.isin(te_low_uids)].new_user_id.values
-        te_high_idxs = te_data[te_data.user_id.isin(te_high_uids)].new_user_id.values
-
-        return vd_low_idxs, vd_high_idxs, te_low_idxs, te_high_idxs
+        return user_groups

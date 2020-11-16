@@ -1,8 +1,3 @@
-SEEDS = [
-    6547893,
-    2034976,
-    2345303,
-]
 
 UN_SEEDS = [
     6547893,
@@ -29,17 +24,15 @@ LEVELS = [
 
 VAE_SEED = 101315
 VAE_MAX_EPOCHS = 100
+VAE_LOG_VAL_EVERY =5
 
-# Controlled experiments
-# Structure is res/{ algorithm name }/{ date and time }/{ trait }/{ seed }
-LOG_VAL_STR = '../../res/con/{}/{}/val/{}/{}'
-LOG_TE_STR = '../../res/con/{}/{}/test/{}/{}'
 # Uncontrolled experiments
 # Structure is res/un/{ algorithm name }/{ date and time }/{ seed }
 UN_LOG_VAL_STR = '../../res/un/{}/{}/val/{}'
 UN_LOG_TE_STR = '../../res/un/{}/{}/test/{}'
 
-DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/pc_gt_1/user_song_pc_gt_1_user_gte_10_song_gte_10.txt'
-PERS_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/pc_gt_1/user_demographics.txt'
-OUT_DIR = '../../data/seed_trait/'
+DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50.txt'
+DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/user_demographics.txt'
 UN_OUT_DIR = '../../data/seed/'
+
+DEMO_TRAITS = ['gender']

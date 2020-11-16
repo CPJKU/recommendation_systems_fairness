@@ -1,5 +1,6 @@
 import bottleneck as bn
 import numpy as np
+from scipy import sparse as sp
 
 from conf import LEVELS
 
@@ -125,12 +126,11 @@ def NDCG_binary_at_k_batch(logits, y_true, k=10):
     idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
     topk_part = logits[dummy_column, idx_topk_part]
     idx_part = np.argsort(-topk_part, axis=1)
-    # X_pred[np.arange(batch_users)[:, np.newaxis], idx_topk] is the sorted topk predicted score
     idx_topk = idx_topk_part[dummy_column, idx_part]
     # build the discount template
     tp = 1. / np.log2(np.arange(2, k + 2))
 
-    DCG = (y_true[dummy_column, idx_topk] * tp).sum(axis=1)
+    DCG = (y_true[dummy_column, idx_topk].toarray() * tp).sum(axis=1)
     IDCG = np.array([(tp[:min(n, k)]).sum()
                      for n in y_true.getnnz(axis=1)])
 
@@ -150,9 +150,9 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
     n = logits.shape[0]
     dummy_column = np.arange(n).reshape(n, 1)
 
-    idx = bn.argpartition(-logits, k, axis=1)
+    idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
     X_pred_binary = np.zeros_like(logits, dtype=bool)
-    X_pred_binary[dummy_column, idx[:, :k]] = True
+    X_pred_binary[dummy_column, idx_topk_part] = True
 
     X_true_binary = (y_true > 0).toarray()
     tmp = (np.logical_and(X_true_binary, X_pred_binary).sum(axis=1)).astype(
@@ -164,54 +164,59 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
     return recall
 
 
-def eval_proced(preds: np.ndarray, true: np.ndarray, high_idxs: np.ndarray, low_idxs: np.ndarray, tag: str):
+def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, *user_groups):
     '''
     Performs the evaluation procedure.
     :param preds: predictions
     :param true: true values
-    :param high_idxs: indexes for extracting the metrics for the high group
-    :param low_idxs: indexes for extracting the metrics for the low group
     :param tag: should be either val or test
+    :param user_groups: array of UserGroup objects. It is used to extract the results from preds and true.
     :return: eval_metric, value of the metric considered for validation purposes
             metrics, dictionary of the average metrics for all users, high group, and low group
             metrics_raw, dictionary of the metrics (not averaged) for high group, and low group
     '''
+    true = sp.csr_matrix(true)  # temporary #TODO: to remove
 
     metrics = dict()
     metrics_raw = dict()
+    trait = user_groups[0].type
     for lev in LEVELS:
-        for metric_name, metric in zip(['ndcg', 'recall'], [NDCG_at_k_batch, Recall_at_k_batch]):
-            res = metric(preds, true, lev)
-            # Split by user group
-            high_res = res[high_idxs]
-            low_res = res[low_idxs]
-            metrics['{}/{}_at_{}'.format(tag, metric_name, lev)] = np.mean(res)
-            metrics['{}/high_{}_at_{}'.format(tag, metric_name, lev)] = np.mean(high_res)
-            metrics['{}/low_{}_at_{}'.format(tag, metric_name, lev)] = np.mean(low_res)
+        for metric_name, metric in zip(['ndcg', 'recall'], [NDCG_binary_at_k_batch, Recall_binary_at_k_batch]):
 
-            metrics_raw['high_{}_at_{}'.format(metric_name, lev)] = high_res
-            metrics_raw['low_{}_at_{}'.format(metric_name, lev)] = low_res
+            # Compute metrics for all users
+            res = metric(preds, true, lev)
+            metrics['{}/{}/{}_at_{}'.format(tag, trait, metric_name, lev)] = np.mean(res)
+
+            # Split the metrics on user basis
+            for user_group in user_groups:
+                user_group_res = res[user_group.vd_indxs if tag == 'val' else user_group.te_indxs]
+                metrics['{}/{}/{}_{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
+                    user_group_res)
+                metrics_raw['{}/{}_{}_at_{}'.format(trait, user_group.name, metric_name, lev)] = user_group_res
 
     # if ndcg@50 is not considered, then it considers the average of ndcgs
     if 50 not in LEVELS:
+        raise ValueError('Use NDCG@50 instead!')
         # Better not use this, since code has to be changed accordingly. metrics_raw should contain this, for instance.
-        eval_metric = np.mean([metrics['{}/ndcg_at_{}'.format(tag, lev)] for lev in LEVELS])
-        metrics['{}/avg_ndcgs'.format(tag)] = eval_metric
+        # eval_metric = np.mean([metrics['{}/ndcg_at_{}'.format(tag, lev)] for lev in LEVELS])
+        # metrics['{}/avg_ndcgs'.format(tag)] = eval_metric
     else:
-        eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
+        eval_metric = metrics['{}/{}/ndcg_at_50'.format(tag, trait)]
     return eval_metric, metrics, metrics_raw
 
 
-def eval_metric(preds: np.ndarray, true: np.ndarray):
+def eval_metric(preds: np.ndarray, true: np.ndarray, aggregated=True):
     '''
     Shorter version of the previous function. It only computes the evaluation on NDCG@50
     :param preds:
     :param true:
+    :param aggregated: whether to compute the mean or not
     :return:
     '''
-    eval_metric_raw = NDCG_at_k_batch(preds, true, 50)
+    true = sp.csr_matrix(true)  # temporary
+    eval_metric_raw = NDCG_binary_at_k_batch(preds, true, 50)
 
-    return np.mean(eval_metric_raw)
+    return np.mean(eval_metric_raw) if aggregated else eval_metric_raw
 
 
 def top_k(arr, k):

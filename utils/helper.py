@@ -3,6 +3,8 @@ import pathlib
 
 import numpy as np
 import pandas as pd
+import torch
+import random
 from scipy import sparse as sp
 
 
@@ -125,3 +127,10 @@ def save_data(dir_path: str, pandas_data: dict, scipy_data: dict, new_tids: pd.D
     new_tids.to_csv(tids_path, index=False)
 
     return pandas_dir_path, scipy_dir_path, tids_path
+
+def reproducible(seed: int):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

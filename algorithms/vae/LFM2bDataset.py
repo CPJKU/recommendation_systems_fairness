@@ -4,9 +4,9 @@ from scipy import sparse
 from torch.utils.data import Dataset
 
 
-class TwitPers(Dataset):
+class LFM2bDataset(Dataset):
     '''
-    Twitter Personality Dataset
+    Lastfm-2b Dataset
     '''
 
     def __init__(self, scipy_dir_path, pandas_dir_path=None, uids_dic_path=None, which='train', transform=None):
