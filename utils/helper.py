@@ -13,7 +13,49 @@ def permute(arr: np.ndarray):
     return arr[idx_perm]
 
 
+def mod_split(arr: np.ndarray, fold_n: int, cv_n_folds: int):
+    '''
+    It creates the fold using the mod operator. fold_n is the test fold, (fold_n+1)%cv_n_folds is the validation fold.
+    The rest is training.
+    :param arr: array to be split in three parts
+    :param fold_n: index of the test set in (0,cv_n_folds-1)
+    :param cv_n_folds: number of total folds in the cross validation
+    :return: tr, vd, te split arrays
+    '''
+
+    # Ensure that fold_n is less than cv_n_folds
+    assert fold_n < cv_n_folds
+    mods = np.mod(arr, cv_n_folds)
+
+    te_indx = np.where(mods == fold_n)[0]
+    vd_indx = np.where(mods == (fold_n + 1) % cv_n_folds)[0]
+
+    tr = np.delete(arr, np.concatenate((te_indx, vd_indx)))
+    vd = arr[vd_indx]
+    te = arr[te_indx]
+    return tr, vd, te
+
+
 def idx_split(arr: np.ndarray, n_train: int, n_heldout: int):
+    '''
+    Splits an array in training, validation, and test set with n_train, n_heldout, and n_heldout entries respectively.
+    (negligible 1 or 2 entries differences may exist)
+
+    :param arr: array to be split in three parts
+    :param n_train: number of training entries
+    :param n_heldout: number of validation entries (= number of test entries)
+    :return: tr, vd, te split arrays
+    '''
+
+    # Ensure that the total amount of entries is more or less equal to the size of the array
+    assert abs((n_train + 2 * n_heldout) - arr.size) <= 2
+    tr = arr[: n_train]
+    vd = arr[n_train: n_train + n_heldout]
+    te = arr[n_train + n_heldout:]
+    return tr, vd, te
+
+
+def idx_sequential_split(arr: np.ndarray, n_train: int, n_heldout: int):
     '''
     Splits an array in training, validation, and test set with n_train, n_heldout, and n_heldout entries respectively.
     (negligible 1 or 2 entries differences may exist)

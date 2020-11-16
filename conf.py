@@ -29,8 +29,8 @@ VAE_LOG_VAL_EVERY = 5
 UN_LOG_VAL_STR = '../../res/un/{}/{}/val/{}'
 UN_LOG_TE_STR = '../../res/un/{}/{}/test/{}'
 
-DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50.txt'
-DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/user_demographics.txt'
+DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/sampled_inter.txt'
+DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/sampled_demo.txt'
 UN_OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/data/seed/'
 
 DEMO_TRAITS = ['gender']

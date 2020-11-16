@@ -6,15 +6,15 @@ from scipy import sparse as sp
 from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from algorithms.slim.slim import SLIM
-from conf import UN_SEEDS, UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
+from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced
 
 print('STARTING UNCONTROLLED EXPERIMENTS WITH SLIM')
-print('SEEDS ARE: {}'.format(UN_SEEDS))
+
 
 grid = {
     "alpha": [5e-1, 1e-1, 1e-2, 1e-3],
@@ -25,13 +25,12 @@ pg = ParameterGrid(grid)
 
 now = datetime.now()
 
-for seed in tqdm(UN_SEEDS, desc='seeds'):
-
-    log_val_str = UN_LOG_VAL_STR.format('slim', now, seed)
-    log_te_str = UN_LOG_TE_STR.format('slim', now, seed)
+for fold_n in trange(5, desc='seeds'):
+    log_val_str = UN_LOG_VAL_STR.format('slim', now, fold_n)
+    log_te_str = UN_LOG_TE_STR.format('slim', now, fold_n)
 
     ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
-    pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(seed)
+    pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # Load data
     sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
@@ -92,7 +91,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
             best_config = config
 
         # Logging hyperparams and metrics
-        hparams = {**config, 'seed': seed}
+        hparams = {**config, 'fold_n': fold_n}
         summ.add_hparams(hparams, full_metrics)
         summ.flush()
 
@@ -130,7 +129,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
         full_raw_metrics.update(metrics_raw)
 
     # Logging hyperparams and metrics
-    hparams = {**best_config, 'seed': seed}
+    hparams = {**best_config, 'fold_n': fold_n}
 
     summ.add_hparams(hparams, full_metrics)
     summ.flush()

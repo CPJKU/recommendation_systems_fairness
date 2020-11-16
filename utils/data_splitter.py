@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from utils.helper import idx_split, filt, random_item_splitter, playcounts, permute, sparsify, save_data
+from utils.helper import idx_split, filt, random_item_splitter, playcounts, permute, sparsify, save_data, mod_split
 
 
 class UserGroup:
@@ -36,12 +36,13 @@ class DataSplitter:
     DIR_NAME = "{}/{}"
     DIR_TR_NAME = "{}/{}/{}"
 
-    def __init__(self, data_path, demo_path=None, out_dir='../../data/', perc_train=80):
+    def __init__(self, data_path, demo_path=None, out_dir='../../data/', perc_train=80, cv_n_folds=5):
         '''
         :param data_path: path to the file containing interactions user_id, track_id
         :param demo_path: path to the personality file containing user_id,ope,con,ext,agr,neu
         :param out_dir: path where the generated dataset is saved
         :param perc_train: % of training users
+        :param cv_n_folds: number of folds in the cross_validation
         '''
         self.data_path = data_path
         self.demo_path = demo_path
@@ -60,6 +61,7 @@ class DataSplitter:
 
         self.n_train = (self.n_users * perc_train) // 100
         self.n_heldout = (self.n_users - self.n_train) // 2
+        self.cv_n_folds = cv_n_folds
 
     def _split(self, tr_uids: np.ndarray, vd_uids: np.ndarray, te_uids: np.ndarray):
         '''
@@ -135,9 +137,9 @@ class DataSplitter:
 
         return pandas_data, scipy_data, new_tids
 
-    def split(self, seed: int):
+    def sample_split(self, seed: int):
         '''
-        Main splitting procedure. Users are sampled at random.
+        Main splitting procedure. Users are sampled at random for the split sets.
         '''
 
         np.random.seed(seed)
@@ -155,6 +157,35 @@ class DataSplitter:
 
         # Saving data
         dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0], seed)
+        dir_path = os.path.join(self.out_dir, dir_name)
+        pandas_dir_path, scipy_dir_path, tids_path = save_data(dir_path, pandas_data, scipy_data, new_tids)
+
+        # Saving uids
+        uids_dic = {
+            'tr_uids': tr_uids,
+            'vd_uids': vd_uids,
+            'te_uids': te_uids
+        }
+        uids_dic_path = os.path.join(dir_path, 'uids_dic.pkl')
+        pickle.dump(uids_dic, open(uids_dic_path, 'wb'))
+
+        return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
+
+    def cv_split(self, fold_n: int):
+        '''
+        Users are split according to the fold number.
+        '''
+
+        # Extract user_ids
+        uids = self.inter.user_id.drop_duplicates().values
+
+        # Split user ids
+        tr_uids, vd_uids, te_uids = mod_split(uids, fold_n, self.cv_n_folds)
+
+        pandas_data, scipy_data, new_tids = self._split(tr_uids, vd_uids, te_uids)
+
+        # Saving data
+        dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0], fold_n)
         dir_path = os.path.join(self.out_dir, dir_name)
         pandas_dir_path, scipy_dir_path, tids_path = save_data(dir_path, pandas_data, scipy_data, new_tids)
 
@@ -218,20 +249,17 @@ class DataSplitter:
 
         return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
 
-    def get_paths(self, seed: int, trait: str = None):
+    def get_paths(self, seed: int = None, fold_n: int = None):
         '''
-        Returns the dataset given a seed. If trait is specified, then it creates balanced splits where there will be an
-        equal ratio of high vs low users (for that trait) in each set (train, validation, and test).
+        Returns the dataset given a seed or the fold number
 
         :param seed: random seed for the splits
-        :param trait: one in ['ope','con','ext','agr','neu']
+        :param fold_n: fold number should be in (0,4)
         :return: paths to the data
         '''
 
-        if trait:
-            dir_name = DataSplitter.DIR_TR_NAME.format(os.path.basename(self.data_path).split('.')[0], trait, seed)
-        else:
-            dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0], seed)
+        dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0],
+                                                seed if seed else fold_n)
 
         dir_path = os.path.join(self.out_dir, dir_name)
 
@@ -241,12 +269,14 @@ class DataSplitter:
                 dir_path, "scipy/"), os.path.join(dir_path, 'uids_dic.pkl'), os.path.join(dir_path, 'new_tids.csv')
         else:
             print("Data not found, generating new split")
-            if trait:
-                print("Seed: {:10d} Trait: {}".format(seed, trait))
-                pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = self.trait_split(seed, trait)
-            else:
+            if seed:
                 print("Seed: {:10d}".format(seed))
-                pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = self.split(seed)
+                pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = self.sample_split(seed)
+            elif fold_n is not None:
+                print("Fold number: {:10d}".format(fold_n))
+                pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = self.cv_split(fold_n)
+            else:
+                raise ValueError('Either seed or fold_n should be not None!')
 
         # Reads new_tids.csv in order to update the number of items
         self.n_items = len(pd.read_csv(tids_path)['new_track_id'])
