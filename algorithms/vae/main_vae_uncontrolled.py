@@ -96,9 +96,9 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
                 opt.step()
                 opt.zero_grad()
 
-                losses.append(loss)
-                neg_lls.append(neg_ll)
-                weighted_KLs.append(weighted_KL)
+                losses.append(loss.item())
+                neg_lls.append(neg_ll.item())
+                weighted_KLs.append(weighted_KL.item())
 
             summ.add_scalars('train', {
                 'avg_loss': np.mean(losses),
@@ -118,7 +118,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
                     logits[x.nonzero(as_tuple=True)] = .0
 
                     logits = logits.detach().cpu().numpy()
-                    val_metrics.append(eval_metric(logits, y, aggregated=False))
+                    val_metrics += list(eval_metric(logits, y, aggregated=False))
 
                 curr_value = np.mean(val_metrics)
                 summ.add_scalar('val/ndcg_50', curr_value, epoch)
