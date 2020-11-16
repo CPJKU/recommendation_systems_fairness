@@ -1,15 +1,13 @@
-import numpy as np
-
-import torch
-from torch import optim
-
+import argparse
 import random
 from copy import deepcopy
 
-from utils import get_data, ndcg, recall
+import numpy as np
+import torch
 from model import VAE
+from torch import optim
 
-import argparse
+from utils import get_data, ndcg, recall
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str)

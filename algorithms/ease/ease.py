@@ -25,13 +25,13 @@ def EASE(A: sp.spmatrix, lam: int):
 
     # Computer Gram matrix
     print('dot product')
-    G = a @ b #.toarray()
+    G = a @ b  # .toarray()
     print('end dot product')
 
     diagIndicies = np.diag_indices(G.shape[0])
     G[diagIndicies] += int(lam)
 
-    #P = np.linalg.inv(G)
+    # P = np.linalg.inv(G)
     print('Starting to invert')
     P = inv(G)
     print('Inverted!')

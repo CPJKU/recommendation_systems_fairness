@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional
 
-from algorithms.vae.model.multi_dae import MultiDAEN
+from algorithms.vae.model.multi_dae import MultiDAE
 
 
 class VAE_loss:
@@ -30,7 +30,7 @@ class VAE_loss:
         return loss, neg_ll, weighted_KL
 
 
-class MultiVAE(MultiDAEN):
+class MultiVAE(MultiDAE):
     """
     Variational Autoencoders for Collaborative Filtering - Dawen Liang, Rahul G. Krishnan, Matthew D. Hoffman, Tony Jebara
     https://arxiv.org/abs/1802.05814

@@ -7,7 +7,7 @@ from torch.nn import functional
 from algorithms.vae.utils.utils import return_dims
 
 
-class MultiDAEN(nn.Module):
+class MultiDAE(nn.Module):
     """
 
     Attributes

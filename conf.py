@@ -1,17 +1,15 @@
-
 UN_SEEDS = [
     6547893,
-    #2034976,
-    #2345303,
-    #7887871,
-    #1023468,
-    #8812394,
-    #2132395,
-    #4444637,
-    #7192837,
-    #6574836,
+    # 2034976,
+    # 2345303,
+    # 7887871,
+    # 1023468,
+    # 8812394,
+    # 2132395,
+    # 4444637,
+    # 7192837,
+    # 6574836,
 ]
-
 
 LEVELS = [
     1,
@@ -24,7 +22,7 @@ LEVELS = [
 
 VAE_SEED = 101315
 VAE_MAX_EPOCHS = 100
-VAE_LOG_VAL_EVERY =5
+VAE_LOG_VAL_EVERY = 5
 
 # Uncontrolled experiments
 # Structure is res/un/{ algorithm name }/{ date and time }/{ seed }

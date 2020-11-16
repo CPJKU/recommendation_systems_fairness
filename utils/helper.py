@@ -1,10 +1,10 @@
 import os
-import pathlib
+import random
 
 import numpy as np
 import pandas as pd
+import pathlib
 import torch
-import random
 from scipy import sparse as sp
 
 
@@ -127,6 +127,7 @@ def save_data(dir_path: str, pandas_data: dict, scipy_data: dict, new_tids: pd.D
     new_tids.to_csv(tids_path, index=False)
 
     return pandas_dir_path, scipy_dir_path, tids_path
+
 
 def reproducible(seed: int):
     random.seed(seed)

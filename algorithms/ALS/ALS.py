@@ -1,8 +1,8 @@
-
-from scipy import sparse as sp
 from implicit.als import AlternatingLeastSquares
+from scipy import sparse as sp
 
-def ALS(A: sp.spmatrix, factors:int):
+
+def ALS(A: sp.spmatrix, factors: int):
     '''
     Run Alternating Least Squares - Hu et al.
     https://lkpy.readthedocs.io/en/stable/mf.html#hkv2008
@@ -15,4 +15,3 @@ def ALS(A: sp.spmatrix, factors:int):
     user_factors = als.user_factors
 
     return user_factors.dot(item_factors.T)
-

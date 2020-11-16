@@ -291,5 +291,4 @@ class DataSplitter:
         else:
             raise ValueError('demo_trait has to be non-null. Not yet implemented!')
 
-
         return user_groups
