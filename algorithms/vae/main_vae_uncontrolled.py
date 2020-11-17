@@ -21,13 +21,12 @@ print('STARTING UNCONTROLLED EXPERIMENTS WITH VAE')
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 grid = {
-    "p_dims": ["100,{}"],  # "500,{}", "50,200,{}", "100,200,{}", "200,500,{}"],
+    "p_dims": ["100,{}", "500,{}", "100,200,{}", "200,500,{}"],
     'q_dims': [''],
     "lr": [1e-3],  # Changing the learning rate does not improve results
-    "betacap": [0.5],
-    "betasteps": [10000],  # TODO: Check the parameters!
+    "betacap": [0.5, 1],
+    "betasteps": [5000, 10000],  # with batch_size 64 and 100 epochs, there are 18.800 updates steps
     "dp": [0.5],
-
 }
 pg = ParameterGrid(grid)
 
@@ -45,7 +44,7 @@ for fold_n in trange(5, desc='folds'):
     reproducible(VAE_SEED)
 
     # --- Data --- #
-    tr_loader = DataLoader(LFM2bDataset(scipy_dir_path, which='train'), batch_size=128, shuffle=True, num_workers=10)
+    tr_loader = DataLoader(LFM2bDataset(scipy_dir_path, which='train'), batch_size=64, shuffle=True, num_workers=10)
     vd_loader = DataLoader(LFM2bDataset(scipy_dir_path, pandas_dir_path, uids_dic_path, which='val'), batch_size=128,
                            num_workers=10, shuffle=False)
     te_loader = DataLoader(LFM2bDataset(scipy_dir_path, pandas_dir_path, uids_dic_path, which='test'), batch_size=128,

@@ -17,7 +17,7 @@ print('STARTING UNCONTROLLED EXPERIMENTS WITH SLIM')
 
 grid = {
     "alpha": [5e-1, 1e-1, 1e-2, 1e-3],
-    "l1_ratio": [1, 1e-1, 1e-2],
+    "l1_ratio": [1e-1, 1e-2],
     "max_iter": [500]
 }
 pg = ParameterGrid(grid)
