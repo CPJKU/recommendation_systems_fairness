@@ -4,8 +4,6 @@ import torch
 from torch import nn
 from torch.nn import functional
 
-from algorithms.vae.utils.utils import return_dims
-
 
 class MultiDAE(nn.Module):
     """
@@ -73,3 +71,7 @@ class MultiDAE(nn.Module):
         x = self.decoder(x)
 
         return x
+
+def return_dims(dims: str):
+    return [int(x) for x in dims.strip().split(",")]
+

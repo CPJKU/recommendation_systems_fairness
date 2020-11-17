@@ -16,7 +16,7 @@ class VAE_loss:
         self.betasteps = betasteps
 
         self.curr_beta = 0.0
-        self.global_step = 0  # TODO:CHECK THIS
+        self.global_step = 0
 
     def __call__(self, logits, KL, y):
         prob = functional.log_softmax(logits, dim=1)
@@ -27,6 +27,7 @@ class VAE_loss:
 
         #  Updating beta
         self.curr_beta = min(self.betacap, self.global_step / self.betasteps)
+        self.global_step += 1
         return loss, neg_ll, weighted_KL
 
 
