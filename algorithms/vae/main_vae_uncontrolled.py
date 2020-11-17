@@ -1,5 +1,4 @@
 import os
-from argparse import Namespace
 
 import numpy as np
 import torch
@@ -45,7 +44,7 @@ for fold_n in trange(5, desc='folds'):
     # Setting seed for reproducibility
     reproducible(VAE_SEED)
 
-    # Creating data loaders
+    # --- Data --- #
     tr_loader = DataLoader(LFM2bDataset(scipy_dir_path, which='train'), batch_size=128, shuffle=True, num_workers=10)
     vd_loader = DataLoader(LFM2bDataset(scipy_dir_path, pandas_dir_path, uids_dic_path, which='val'), batch_size=128,
                            num_workers=10, shuffle=False)
@@ -55,23 +54,20 @@ for fold_n in trange(5, desc='folds'):
     user_groups_all_traits = dict()
     for trait in DEMO_TRAITS:
         # This creates UserGroup object that store the index of the users belonging to the group in te and vd data.
-        user_groups_all_traits[trait] = ds.get_user_groups_indxs(pandas_dir_path, uids_dic_path, trait)
+        user_groups_all_traits[trait] = ds.get_user_groups_indxs(pandas_dir_path, trait)
     print("Data Loaded")
 
     best_value = 0
-    best_config = None
     # Running Hyperparameter search
     for config in tqdm(pg, desc='configs'):
         config['p_dims'] = config['p_dims'].format(ds.n_items)
 
         summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
-        config = Namespace(**config)
-
         # Model definition
-        model = MultiVAE(config.p_dims, config.q_dims, config.dp, config.betacap, config.betasteps)
+        model = MultiVAE(config['p_dims'], config['q_dims'], config['dp'], config['betacap'], config['betasteps'])
         model = model.to(device)
-        opt = torch.optim.Adam(model.parameters(), lr=config.lr)
+        opt = torch.optim.Adam(model.parameters(), lr=config['lr'])
 
         for epoch in trange(VAE_MAX_EPOCHS, desc='epochs'):
             # --- Training --- #
@@ -114,19 +110,22 @@ for fold_n in trange(5, desc='folds'):
                 summ.flush()
 
                 if curr_value > best_value:
-                    best_value = curr_value
                     print('New best model found')
+                    best_value = curr_value
 
                     pickle_dump(config, os.path.join(log_val_str, 'best_config.pkl'))
                     torch.save(model.state_dict(), os.path.join(log_val_str, 'best_model.pth'))
+        # Logging hyperparams and metrics
+        summ.add_hparams({**config, 'fold_n': fold_n}, {'val/ndcg_50': best_value})
+        summ.flush()
 
-    # Test
+    # --- Test --- #
 
     summ = SummaryWriter(log_te_str)
 
     best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
-    model = MultiVAE(best_config.p_dims, best_config.q_dims, best_config.dp, best_config.betacap,
-                     best_config.betasteps)
+    model = MultiVAE(best_config['p_dims'], best_config['q_dims'], best_config['dp'], best_config['betacap'],
+                     best_config['betasteps'])
     model.load_state_dict(torch.load(os.path.join(log_val_str, 'best_model.pth')))
     model = model.to(device)
 
@@ -155,7 +154,10 @@ for fold_n in trange(5, desc='folds'):
         full_metrics.update(metrics)
         full_raw_metrics.update(metrics_raw)
 
-    summ.add_hparams({**vars(best_config), 'fold_n': fold_n}, full_metrics)
+    # Logging hyperparams and metrics
+    summ.add_hparams({**best_config, 'fold_n': fold_n}, full_metrics)
+    summ.flush()
+
     # Saving results
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))

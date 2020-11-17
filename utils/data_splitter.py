@@ -294,7 +294,7 @@ class DataSplitter:
         else:
             raise ValueError('Demographic trait not yet implemented')
 
-    def get_user_groups_indxs(self, pandas_dir_path: str, uids_dic_path: str, demo_trait=None):
+    def get_user_groups_indxs(self, pandas_dir_path: str, demo_trait=None):
         '''
         :param pandas_dir_path:
         :param uids_dic_path:
@@ -307,10 +307,9 @@ class DataSplitter:
         te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
             ['user_id', 'new_user_id']].drop_duplicates()
 
-        if demo_trait:
+        if demo_trait is not None:
             user_groups = self.get_user_groups(demo_trait)
             for user_group in user_groups:
-
                 user_group.vd_indxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
                 user_group.te_indxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
         else:
