@@ -18,6 +18,6 @@ UN_LOG_TE_STR = '../../res/un/{}/{}/test/{}'
 
 DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/sampled_inter.txt'
 DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/sampled_demo.txt'
-UN_OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/data/seed/'
+UN_OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_since_2016_pc_gt_1_user_gte_5_song_gte_50/data/{}/'
 
 DEMO_TRAITS = ['gender']

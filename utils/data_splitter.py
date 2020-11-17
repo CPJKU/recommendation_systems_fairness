@@ -9,7 +9,7 @@ from utils.helper import idx_split, filt, random_item_splitter, playcounts, perm
 
 class UserGroup:
     '''
-    Holds information of a specific user group such as name of the group and the user ids
+    Holds information of a specific user group such as name of the group, the user ids, and the postional index
     '''
 
     def __init__(self, type: str, name: str, uids: np.ndarray):
@@ -23,13 +23,11 @@ class UserGroup:
 class DataSplitter:
     '''
     Class used to generated the dataset in the following steps:
-    - Splits the users in training (80%), validation (10%), and test (10%)
+    - Splits the users in training (80%), validation (10%), and test (10%) or using cross validation with 5 folds.
     - Filters the data (tracks not in the training data are discarded, users with fewer than 5 LEs are also removed)
     - Generates the playcount for each user
     - For validation and test users, the tracks listened are partitioned in training items (80%) and test items (20%)
 
-    It can also generated a controlled splitting where the ratio of high vs low trait classes is equal in train, val,
-    test sets.
     '''
     INF_STR = "{:10d} entries {:7d} users {:7d} items for {} data"
     LST_STR = "{:10d} entries {:7d} users {:7d} items (lost)"
@@ -39,7 +37,7 @@ class DataSplitter:
     def __init__(self, data_path, demo_path=None, out_dir='../../data/', perc_train=80, cv_n_folds=5):
         '''
         :param data_path: path to the file containing interactions user_id, track_id
-        :param demo_path: path to the personality file containing user_id,ope,con,ext,agr,neu
+        :param demo_path: path to the demographic information of the users such as gender, country, and age
         :param out_dir: path where the generated dataset is saved
         :param perc_train: % of training users
         :param cv_n_folds: number of folds in the cross_validation
@@ -139,9 +137,9 @@ class DataSplitter:
 
     def sample_split(self, seed: int):
         '''
-        Main splitting procedure. Users are sampled at random for the split sets.
+        Users are sampled at random for the split sets.
         '''
-
+        self.out_dir = self.out_dir.format('seed')
         np.random.seed(seed)
 
         # Extract user_ids
@@ -175,7 +173,7 @@ class DataSplitter:
         '''
         Users are split according to the fold number.
         '''
-
+        self.out_dir = self.out_dir.format('fold_n')
         # Extract user_ids
         uids = self.inter.user_id.drop_duplicates().values
 
@@ -257,11 +255,10 @@ class DataSplitter:
         :param fold_n: fold number should be in (0,4)
         :return: paths to the data
         '''
-
         dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0],
                                                 seed if seed else fold_n)
 
-        dir_path = os.path.join(self.out_dir, dir_name)
+        dir_path = os.path.join(self.out_dir.format('seed' if seed is not None else 'fold_n'), dir_name)
 
         # Assuming that if the main dir exists, all files will be present
         if os.path.isdir(dir_path):
@@ -269,7 +266,7 @@ class DataSplitter:
                 dir_path, "scipy/"), os.path.join(dir_path, 'uids_dic.pkl'), os.path.join(dir_path, 'new_tids.csv')
         else:
             print("Data not found, generating new split")
-            if seed:
+            if seed is not None:
                 print("Seed: {:10d}".format(seed))
                 pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = self.sample_split(seed)
             elif fold_n is not None:
@@ -290,7 +287,8 @@ class DataSplitter:
 
         # Split by gender
         if demo_trait == 'gender':
-            m_uids = self.demo[self.demo.gender == 'm'].index.values  # TODO: Are these the same user ids?
+            # User ids are encoded by position
+            m_uids = self.demo[self.demo.gender == 'm'].index.values
             f_uids = self.demo[self.demo.gender == 'f'].index.values
             return [UserGroup('gender', 'm', m_uids), UserGroup('gender', 'f', f_uids)]
         else:
@@ -309,15 +307,12 @@ class DataSplitter:
         te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
             ['user_id', 'new_user_id']].drop_duplicates()
 
-        # uids_dic = pickle.load(open(uids_dic_path, 'rb'))
-
         if demo_trait:
             user_groups = self.get_user_groups(demo_trait)
             for user_group in user_groups:
-                user_group.vd_indxs = vd_data[
-                    vd_data.user_id.isin(set(vd_data.user_id).intersection(user_group.uids))].new_user_id.values
-                user_group.te_indxs = te_data[
-                    te_data.user_id.isin(set(te_data.user_id).intersection(user_group.uids))].new_user_id.values
+
+                user_group.vd_indxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
+                user_group.te_indxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
         else:
             raise ValueError('demo_trait has to be non-null. Not yet implemented!')
 
