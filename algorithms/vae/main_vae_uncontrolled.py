@@ -1,5 +1,4 @@
 import os
-import pickle
 from argparse import Namespace
 
 import numpy as np
@@ -13,13 +12,12 @@ from tqdm import tqdm, trange
 from algorithms.vae.LFM2bDataset import LFM2bDataset
 from algorithms.vae.model.multi_vae import MultiVAE
 from conf import VAE_SEED, VAE_MAX_EPOCHS, \
-    UN_SEEDS, UN_LOG_TE_STR, UN_LOG_VAL_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS, VAE_LOG_VAL_EVERY
+    UN_LOG_TE_STR, UN_LOG_VAL_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS, VAE_LOG_VAL_EVERY
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_metric, eval_proced
-from utils.helper import reproducible
+from utils.helper import reproducible, pickle_dump, pickle_load
 
 print('STARTING UNCONTROLLED EXPERIMENTS WITH VAE')
-print('SEEDS ARE: {}'.format(UN_SEEDS))
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -27,9 +25,8 @@ grid = {
     "p_dims": ["100,{}"],  # "500,{}", "50,200,{}", "100,200,{}", "200,500,{}"],
     'q_dims': [''],
     "lr": [1e-3],  # Changing the learning rate does not improve results
-    "betacap": [0.5, 1],
-    "betasteps": [10000, 20000],
-    "wd": [.0],
+    "betacap": [0.5],
+    "betasteps": [10000],  # TODO: Check the parameters!
     "dp": [0.5],
 
 }
@@ -37,16 +34,13 @@ pg = ParameterGrid(grid)
 
 now = datetime.now()
 
-for seed in tqdm(UN_SEEDS, desc='seeds'):
+for fold_n in trange(5, desc='folds'):
 
-    log_val_str = UN_LOG_VAL_STR.format('vae', now, seed)
-    log_te_str = UN_LOG_TE_STR.format('vae', now, seed)
-
-    if not os.path.isdir(log_val_str):
-        os.makedirs(log_val_str)  # TODO: why?
+    log_val_str = UN_LOG_VAL_STR.format('vae', now, fold_n)
+    log_te_str = UN_LOG_TE_STR.format('vae', now, fold_n)
 
     ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
-    pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(seed)
+    pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # Setting seed for reproducibility
     reproducible(VAE_SEED)
@@ -70,8 +64,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
     for config in tqdm(pg, desc='configs'):
         config['p_dims'] = config['p_dims'].format(ds.n_items)
 
-        # Adding seed just for the sake of logging
-        config['seed'] = seed
+        summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
         config = Namespace(**config)
 
@@ -80,9 +73,7 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
         model = model.to(device)
         opt = torch.optim.Adam(model.parameters(), lr=config.lr)
 
-        summ = SummaryWriter(log_val_str)
-
-        for epoch in trange(VAE_MAX_EPOCHS):
+        for epoch in trange(VAE_MAX_EPOCHS, desc='epochs'):
             # --- Training --- #
             model.train()
             losses, neg_lls, weighted_KLs = [], [], []
@@ -100,11 +91,9 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
                 neg_lls.append(neg_ll.item())
                 weighted_KLs.append(weighted_KL.item())
 
-            summ.add_scalars('train', {
-                'avg_loss': np.mean(losses),
-                'avg_neg_lss': np.mean(neg_lls),
-                'avg_weighted_KL': np.mean(weighted_KLs)
-            }, epoch)
+            summ.add_scalar('train/avg_loss', np.mean(losses), epoch)
+            summ.add_scalar('train/avg_neg_lss', np.mean(neg_lls), epoch)
+            summ.add_scalar('train/avg_weighted_KL', np.mean(weighted_KLs), epoch)
 
             # --- Validation --- #
             if epoch % VAE_LOG_VAL_EVERY == 0:
@@ -122,18 +111,24 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
 
                 curr_value = np.mean(val_metrics)
                 summ.add_scalar('val/ndcg_50', curr_value, epoch)
+                summ.flush()
+
                 if curr_value > best_value:
                     best_value = curr_value
                     print('New best model found')
-                    best_config = config
-                    torch.save(model.state_dict(), os.path.join(log_val_str, 'best_model.pth'))  # TODO: PATH?
+
+                    pickle_dump(config, os.path.join(log_val_str, 'best_config.pkl'))
+                    torch.save(model.state_dict(), os.path.join(log_val_str, 'best_model.pth'))
 
     # Test
+
+    summ = SummaryWriter(log_te_str)
+
+    best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
     model = MultiVAE(best_config.p_dims, best_config.q_dims, best_config.dp, best_config.betacap,
                      best_config.betasteps)
     model.load_state_dict(torch.load(os.path.join(log_val_str, 'best_model.pth')))
-
-    summ = SummaryWriter(log_te_str)
+    model = model.to(device)
 
     model.eval()
     all_y = []
@@ -145,23 +140,22 @@ for seed in tqdm(UN_SEEDS, desc='seeds'):
         # Removing items from training data
         logits[x.nonzero(as_tuple=True)] = .0
 
-        logits = logits.detach().cpu().numpy()
-
         # Fetching all predictions and ground_truth labels
-        all_y.append(y)
-        all_logits.append(logits)
+        all_logits.append(logits.detach().cpu().numpy())
+        all_y.append(y.detach().cpu().numpy())
 
-    all_y = np.array(all_y).flatten()
-    all_logits = np.array(all_logits).flatten()
+    all_y = np.concatenate(all_y)
+    all_logits = np.concatenate(all_logits)
 
     full_metrics = dict()
     full_raw_metrics = dict()
     for trait in DEMO_TRAITS:
         user_groups = user_groups_all_traits[trait]
-        _, metrics, metrics_raw = eval_proced(all_logits, all_logits, 'test', user_groups)
+        _, metrics, metrics_raw = eval_proced(all_logits, all_y, 'test', user_groups)
         full_metrics.update(metrics)
         full_raw_metrics.update(metrics_raw)
 
-    summ.add_hparams({**vars(best_config), 'seed': seed}, full_metrics)
-    # Saving the best_config
-    pickle.dump(vars(best_config), open(os.path.join(log_te_str, 'best_config.pkl'), 'wb'))
+    summ.add_hparams({**vars(best_config), 'fold_n': fold_n}, full_metrics)
+    # Saving results
+    pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
+    pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))

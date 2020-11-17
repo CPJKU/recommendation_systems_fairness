@@ -72,6 +72,6 @@ class MultiDAE(nn.Module):
 
         return x
 
+
 def return_dims(dims: str):
     return [int(x) for x in dims.strip().split(",")]
-

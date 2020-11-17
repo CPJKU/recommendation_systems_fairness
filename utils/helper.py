@@ -1,4 +1,5 @@
 import os
+import pickle
 import random
 
 import numpy as np
@@ -177,3 +178,10 @@ def reproducible(seed: int):
     np.random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+def pickle_load(file_path):
+    return pickle.load(open(file_path, 'rb'))
+
+
+def pickle_dump(x, file_path):
+    return pickle.dump(x, open(file_path, 'wb'))

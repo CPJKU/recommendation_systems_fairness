@@ -1,8 +1,11 @@
+from typing import List
+
 import bottleneck as bn
 import numpy as np
 from scipy import sparse as sp
 
 from conf import LEVELS
+from utils.data_splitter import UserGroup
 
 
 def NDCG_at_k_batch(logits, y_true, k=10):
@@ -164,7 +167,7 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
     return recall
 
 
-def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, *user_groups):
+def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups:List[UserGroup]):
     '''
     Performs the evaluation procedure.
     :param preds: predictions
