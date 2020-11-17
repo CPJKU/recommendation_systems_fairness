@@ -12,7 +12,7 @@ DEMO_TRAITS = [
 ]
 
 VAE_SEED = 101315
-VAE_MAX_EPOCHS = 5  # TODO: Used for debug
+VAE_MAX_EPOCHS = 100
 VAE_LOG_VAL_EVERY = 5
 
 # Uncontrolled experiments
