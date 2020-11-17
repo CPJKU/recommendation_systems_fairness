@@ -247,12 +247,12 @@ class DataSplitter:
 
         return pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path
 
-    def get_paths(self, seed: int = None, fold_n: int = None):
+    def get_paths(self, fold_n: int = None, seed: int = None):
         '''
         Returns the dataset given a seed or the fold number
 
+        :param fold_n: fold number should be in (0,self.cv_n_folds)
         :param seed: random seed for the splits
-        :param fold_n: fold number should be in (0,4)
         :return: paths to the data
         '''
         dir_name = DataSplitter.DIR_NAME.format(os.path.basename(self.data_path).split('.')[0],
