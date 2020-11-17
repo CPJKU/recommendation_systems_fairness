@@ -2,9 +2,9 @@ from implicit.bpr import BayesianPersonalizedRanking
 from scipy import sparse as sp
 
 
-def ALS(A: sp.spmatrix, factors: int):
+def bpr(A: sp.spmatrix, factors: int):
     '''
-    Run ABayesianPersonalizedRanking -
+    Run BayesianPersonalizedRanking -
 
     '''
     # TODO: Change here
