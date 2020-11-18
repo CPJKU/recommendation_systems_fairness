@@ -16,8 +16,9 @@ class UserGroup:
         self.type = type
         self.name = name
         self.uids = uids
-        self.te_indxs = None
-        self.vd_indxs = None
+        self.tr_idxs = None
+        self.vd_idxs = None
+        self.te_idxs = None
 
 
 class DataSplitter:
@@ -297,11 +298,12 @@ class DataSplitter:
     def get_user_groups_indxs(self, pandas_dir_path: str, demo_trait=None):
         '''
         :param pandas_dir_path:
-        :param uids_dic_path:
         :param demo_trait:
         :return:
         '''
 
+        tr_data = pd.read_csv(os.path.join(pandas_dir_path, 'tr_data.csv'))[
+            ['user_id', 'new_user_id']].drop_duplicates()
         vd_data = pd.read_csv(os.path.join(pandas_dir_path, 'vd_data.csv'))[
             ['user_id', 'new_user_id']].drop_duplicates()
         te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
@@ -310,8 +312,9 @@ class DataSplitter:
         if demo_trait is not None:
             user_groups = self.get_user_groups(demo_trait)
             for user_group in user_groups:
-                user_group.vd_indxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
-                user_group.te_indxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
+                user_group.tr_idxs = tr_data[tr_data.user_id.isin(set(user_group.uids))].new_user_id.values
+                user_group.vd_idxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
+                user_group.te_idxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
         else:
             raise ValueError('demo_trait has to be non-null. Not yet implemented!')
 

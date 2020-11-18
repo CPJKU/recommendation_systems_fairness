@@ -1,8 +1,8 @@
 import os
+from datetime import datetime
 
 import numpy as np
 import torch
-from datetime import datetime
 from sklearn.model_selection import ParameterGrid
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -21,12 +21,11 @@ print('STARTING UNCONTROLLED EXPERIMENTS WITH VAE')
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 grid = {
-    "p_dims": ["100,{}", "500,{}", "100,200,{}", "200,500,{}"],
+    "p_dims": ["100,{}", "500,{}", "200,500,{}", "500,1000,{}"],
     'q_dims': [''],
-    "lr": [1e-3],  # Changing the learning rate does not improve results
-    "betacap": [0.5, 1],
+    # "lr": [1e-3],  # Changing the learning rate does not improve results
+    "betacap": [0.2, 0.5],
     "betasteps": [5000, 10000],  # with batch_size 64 and 100 epochs, there are 18.800 updates steps
-    "dp": [0.5],
 }
 pg = ParameterGrid(grid)
 
@@ -64,9 +63,9 @@ for fold_n in trange(5, desc='folds'):
         summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
         # Model definition
-        model = MultiVAE(config['p_dims'], config['q_dims'], config['dp'], config['betacap'], config['betasteps'])
+        model = MultiVAE(config['p_dims'], config['q_dims'], 0.5, config['betacap'], config['betasteps'])
         model = model.to(device)
-        opt = torch.optim.Adam(model.parameters(), lr=config['lr'])
+        opt = torch.optim.Adam(model.parameters(), lr=1e-3)
 
         for epoch in trange(VAE_MAX_EPOCHS, desc='epochs'):
             # --- Training --- #

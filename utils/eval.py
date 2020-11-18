@@ -191,7 +191,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
             # Split the metrics on user basis
             for user_group in user_groups:
-                user_group_res = res[user_group.vd_indxs if tag == 'val' else user_group.te_indxs]
+                user_group_res = res[user_group.vd_idxs if tag == 'val' else user_group.te_idxs]
                 metrics['{}/{}/{}_{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
                     user_group_res)
                 metrics_raw['{}/{}_{}_at_{}'.format(trait, user_group.name, metric_name, lev)] = user_group_res
