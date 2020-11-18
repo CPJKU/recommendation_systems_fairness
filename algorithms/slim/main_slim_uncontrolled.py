@@ -1,6 +1,6 @@
 import os
-
 from datetime import datetime
+
 from scipy import sparse as sp
 from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import ParameterGrid
@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
 from algorithms.slim.slim import SLIM
+from algorithms.slim.slim_parallel import SLIM_parallel
 from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
@@ -64,7 +65,7 @@ for fold_n in trange(5, desc='folds'):
             selection="random",  # efficiency reasons
             tol=1e-4  # assuming a good tolerance
         )
-        W = SLIM(A, elanet)
+        W = SLIM_parallel(A, elanet)
 
         Atild = sp.csr_matrix(A.dot(W))
 
