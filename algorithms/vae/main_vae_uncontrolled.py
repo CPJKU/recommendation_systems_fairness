@@ -122,7 +122,7 @@ for fold_n in trange(5, desc='folds'):
     summ = SummaryWriter(log_te_str)
 
     best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
-    model = MultiVAE(best_config['p_dims'], best_config['q_dims'], best_config['dp'], best_config['betacap'],
+    model = MultiVAE(best_config['p_dims'], best_config['q_dims'], 0.5, best_config['betacap'],
                      best_config['betasteps'])
     model.load_state_dict(torch.load(os.path.join(log_val_str, 'best_model.pth')))
     model = model.to(device)

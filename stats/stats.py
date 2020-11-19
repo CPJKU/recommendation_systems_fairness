@@ -1,8 +1,8 @@
-from conf import DEMO_PATH, DATA_PATH, UN_OUT_DIR, DEMO_TRAITS
+from conf import DEMO_PATH, DATA_PATH, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
 
 for fold_n in range(5):
-    ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
+    ds = DataSplitter(DATA_PATH, DEMO_PATH)
     pandas_dir_path, _, _, _ = ds.get_paths(fold_n=fold_n)
 
     user_groups_all_traits = dict()

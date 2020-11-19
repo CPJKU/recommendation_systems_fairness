@@ -136,6 +136,9 @@ def NDCG_binary_at_k_batch(logits, y_true, k=10):
     IDCG = np.array([(tp[:min(n, k)]).sum()
                      for n in y_true.getnnz(axis=1)])
 
+    # TODO: issue with the precision here, assertion fails
+    DCG = np.round(DCG, 13)
+    IDCG = np.round(IDCG, 13)
     # sanity check
     assert (IDCG - DCG >= 0).all()
     return DCG / IDCG

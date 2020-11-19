@@ -28,10 +28,8 @@ def SLIM_parallel(A: sp.csc_matrix, elanet: ElasticNet):
     for from_j, to_j in ranges:
         separated_tasks.append([from_j, to_j, A, elanet])
 
-    pool = multiprocessing.Pool()
-    results = pool.map(work, separated_tasks)
-    pool.close()
-    pool.join()
+    with multiprocessing.Pool() as pool:
+        results = pool.map(work, separated_tasks)
 
     W_rows_idxs = list(itertools.chain(*[x[0] for x in results]))
     W_cols_idxs = list(itertools.chain(*[x[1] for x in results]))
@@ -88,7 +86,7 @@ def generate_slices(total_columns):
     from multiprocessing import cpu_count
 
     cores = cpu_count()
-
+    print('Running on {} cores'.format(cores))
     segment_length = total_columns // cores
 
     ranges = []
