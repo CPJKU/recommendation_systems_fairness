@@ -83,7 +83,7 @@ for fold_n in trange(5, desc='folds'):
             print('New best model found')
             best_value = curr_value
 
-            pickle_dump(config, os.path.join(log_val_str, 'best_config_fold%d.pkl' % fold_n))
+            pickle_dump(config, os.path.join(log_val_str, 'best_config_fold.pkl'))
 
         # Logging hyperparams and metrics
         summ.add_hparams({**config, 'fold_n': fold_n}, {'val/ndcg_50': best_value})
@@ -95,7 +95,7 @@ for fold_n in trange(5, desc='folds'):
     summ = SummaryWriter(log_te_str)
 
     
-    best_config = pickle_load(os.path.join(log_val_str, 'best_config_fold%d.pkl' % fold_n))
+    best_config = pickle_load(os.path.join(log_val_str, 'best_config_fold.pkl'))
 
     model = implicit.als.AlternatingLeastSquares(factors=best_config["factors"], 
                                                  regularization=best_config["regularization"],
