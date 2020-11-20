@@ -25,8 +25,8 @@ now = datetime.now()
 
 for fold_n in trange(5, desc='folds'):
 
-    log_val_str = UN_LOG_VAL_STR.format('slim', now, fold_n)
-    log_te_str = UN_LOG_TE_STR.format('slim', now, fold_n)
+    log_val_str = UN_LOG_VAL_STR.format('slim', now, os.path.basename(DATA_PATH), fold_n)
+    log_te_str = UN_LOG_TE_STR.format('slim', now, os.path.basename(DATA_PATH), fold_n)
 
     ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)

@@ -133,8 +133,7 @@ def NDCG_binary_at_k_batch(logits, y_true, k=10):
     tp = 1. / np.log2(np.arange(2, k + 2))
 
     DCG = (y_true[dummy_column, idx_topk].toarray() * tp).sum(axis=1)
-    IDCG = np.array([(tp[:min(n, k)]).sum()
-                     for n in y_true.getnnz(axis=1)])
+    IDCG = np.array([(tp[:min(n, k)]).sum() for n in y_true.getnnz(axis=1)])
 
     # TODO: issue with the precision here, assertion fails
     DCG = np.round(DCG, 13)
@@ -180,6 +179,9 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
             metrics, dictionary of the average metrics for all users, high group, and low group
             metrics_raw, dictionary of the metrics (not averaged) for high group, and low group
     '''
+
+    assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
+
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
 
     metrics = dict()
@@ -190,23 +192,17 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
             # Compute metrics for all users
             res = metric(preds, true, lev)
-            metrics['{}/{}/{}_at_{}'.format(tag, trait, metric_name, lev)] = np.mean(res)
+            metrics['{}/{}_at_{}'.format(tag, metric_name, lev)] = np.mean(res)
+            metrics_raw['{}/{}_at_{}'.format(tag, metric_name, lev)] = res
 
-            # Split the metrics on user basis
+            # Split the metrics on user group basis
             for user_group in user_groups:
                 user_group_res = res[user_group.vd_idxs if tag == 'val' else user_group.te_idxs]
-                metrics['{}/{}/{}_{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
+                metrics['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
                     user_group_res)
-                metrics_raw['{}/{}_{}_at_{}'.format(trait, user_group.name, metric_name, lev)] = user_group_res
+                metrics_raw['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = user_group_res
 
-    # if ndcg@50 is not considered, then it considers the average of ndcgs
-    if 50 not in LEVELS:
-        raise ValueError('Use NDCG@50 instead!')
-        # Better not use this, since code has to be changed accordingly. metrics_raw should contain this, for instance.
-        # eval_metric = np.mean([metrics['{}/ndcg_at_{}'.format(tag, lev)] for lev in LEVELS])
-        # metrics['{}/avg_ndcgs'.format(tag)] = eval_metric
-    else:
-        eval_metric = metrics['{}/{}/ndcg_at_50'.format(tag, trait)]
+    eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
     return eval_metric, metrics, metrics_raw
 
 
