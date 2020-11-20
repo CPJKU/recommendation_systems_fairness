@@ -5,7 +5,11 @@ from scipy import sparse as sp
 def BPR(A: sp.coo_matrix, factors: int, lr: float, regularization: float, iterations: float):
     '''
     Run BayesianPersonalizedRanking - BPR: Bayesian Personalized Ranking from ImplicitFeedback
-    :param A: itemxuser matrix
+    :param A:
+    :param factors:
+    :param lr:
+    :param regularization:
+    :param iterations:
     '''
     bpr = BayesianPersonalizedRanking(factors=factors,
                                       learning_rate=lr,
@@ -15,7 +19,7 @@ def BPR(A: sp.coo_matrix, factors: int, lr: float, regularization: float, iterat
                                       verify_negative_samples=True,
                                       num_threads=10
                                       )
-    bpr.fit(A)
+    bpr.fit(A.T)
 
     # Last one is the bias term. However user_bias is 1 (not used) so a simple dot product works.
     item_factors = bpr.item_factors

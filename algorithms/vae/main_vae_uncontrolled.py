@@ -10,7 +10,7 @@ from tqdm import tqdm, trange
 
 from algorithms.vae.LFM2bDataset import LFM2bDataset
 from algorithms.vae.model.multi_vae import MultiVAE
-from conf import VAE_SEED, VAE_MAX_EPOCHS, \
+from conf import EXP_SEED, VAE_MAX_EPOCHS, \
     UN_LOG_TE_STR, UN_LOG_VAL_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS, VAE_LOG_VAL_EVERY
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_metric, eval_proced
@@ -40,7 +40,7 @@ for fold_n in trange(5, desc='folds'):
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # Setting seed for reproducibility
-    reproducible(VAE_SEED)
+    reproducible(EXP_SEED)
 
     # --- Data --- #
     tr_loader = DataLoader(LFM2bDataset(scipy_dir_path, which='train'), batch_size=64, shuffle=True, num_workers=10)

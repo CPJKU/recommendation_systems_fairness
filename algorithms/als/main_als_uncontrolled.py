@@ -1,28 +1,23 @@
-import os, pdb
-from datetime import datetime
+import os
 
+from datetime import datetime
 from scipy import sparse as sp
-import numpy as np
-from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
 from algorithms.als.als import ALS
-import implicit
-
-from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
+from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS, EXP_SEED
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
-from utils.helper import pickle_dump, pickle_load
-
+from utils.helper import pickle_dump, pickle_load, reproducible
 
 print('STARTING UNCONTROLLED EXPERIMENTS WITH ALS')
 
 grid = {
-    "factors": [64, 128, 256],
-    "iterations": [15, 30, 60],
-    "regularization": [0.01, 0.05, 0.001]
+    "factors": [10, 50, 100, 200, 500],
+    "iterations": [1000, 2000, 5000],
+    "regularization": [1e-3, 1e-4]
 }
 pg = ParameterGrid(grid)
 
@@ -30,11 +25,14 @@ now = datetime.now()
 
 for fold_n in trange(5, desc='folds'):
 
-    log_val_str = UN_LOG_VAL_STR.format('als', now, fold_n)
-    log_te_str = UN_LOG_TE_STR.format('als', now, fold_n)
+    log_val_str = UN_LOG_VAL_STR.format('als', now, os.path.basename(DATA_PATH), fold_n)
+    log_te_str = UN_LOG_TE_STR.format('als', now, os.path.basename(DATA_PATH), fold_n)
 
     ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
+
+    # Setting seed for reproducibility
+    reproducible(EXP_SEED)
 
     # --- Data --- #
     sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
@@ -49,25 +47,23 @@ for fold_n in trange(5, desc='folds'):
         user_groups_all_traits[trait] = ds.get_user_groups_indxs(pandas_dir_path, trait)
     print("Data Loaded")
 
-    A = sp.csc_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
-    
+    # Stacking training data and validation training data
+    A = sp.csr_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
+
     best_value = 0
     # Running Hyperparameter search
-    for config in pg:#tqdm(pg, desc='configs'):
+    for config in tqdm(pg, desc='configs'):
 
         summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
+        Atild = ALS(A, config['factors'], config['regularization'], config['iterations'])
 
-        model = implicit.als.AlternatingLeastSquares(factors=config["factors"], 
-                                                     regularization=config["regularization"],
-                                                     iterations=config["iterations"])
-    
-        model = ALS(A, model)
-        
-        _predict_user_ids = list(range(sp_vd_tr_data.shape[0]))
-        _user_factors_set = model.user_factors[_predict_user_ids]
-        preds = _user_factors_set.dot(model.item_factors.T)
-    
+        # Only focusing on validation data
+        Atild = Atild[:sp_vd_tr_data.shape[0]]
+        # Removing entries from training data
+        Atild[sp_vd_tr_data.nonzero()] = .0
+
+        preds = Atild
         true = sp_vd_te_data.toarray()
 
         curr_value = eval_metric(preds, true)
@@ -76,31 +72,28 @@ for fold_n in trange(5, desc='folds'):
             print('New best model found')
             best_value = curr_value
 
-            pickle_dump(config, os.path.join(log_val_str, 'best_config_fold.pkl'))
+            pickle_dump(config, os.path.join(log_val_str, 'best_config.pkl'))
 
         # Logging hyperparams and metrics
         summ.add_hparams({**config, 'fold_n': fold_n}, {'val/ndcg_50': best_value})
         summ.flush()
 
     # --- Test --- #
-    print ("*** Test running ... ***")
-    
+
     summ = SummaryWriter(log_te_str)
 
-    
-    best_config = pickle_load(os.path.join(log_val_str, 'best_config_fold.pkl'))
+    best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
 
-    model = implicit.als.AlternatingLeastSquares(factors=best_config["factors"], 
-                                                 regularization=best_config["regularization"],
-                                                 iterations=best_config["iterations"])
-    A_test = sp.csc_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
-    
-    model = ALS(A_test, model)
-        
-    _predict_user_ids = list(range(sp_te_tr_data.shape[0]))
-    _user_factors_set = model.user_factors[_predict_user_ids]
-    preds = _user_factors_set.dot(model.item_factors.T)
+    A_test = sp.csr_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
 
+    Atild_test = ALS(A_test, best_config['factors'], best_config['regularization'], best_config['iterations'])
+
+    # Only focusing on test data
+    Atild_test = Atild_test[:sp_te_tr_data.shape[0]]
+    # Removing entries from training data
+    Atild_test[sp_te_tr_data.nonzero()] = .0
+
+    preds = Atild_test
     true = sp_te_te_data.toarray()
 
     full_metrics = dict()
@@ -118,6 +111,3 @@ for fold_n in trange(5, desc='folds'):
     # Saving results
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
-
-    print ("*** Test finished! ***")
-    

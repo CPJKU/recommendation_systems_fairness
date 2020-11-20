@@ -45,7 +45,7 @@ for fold_n in trange(5, desc='folds'):
     print("Data Loaded")
 
     # Stacking training data and validation training data
-    A = sp.csc_matrix(sp.vstack((sp_tr_data, sp_vd_tr_data)))
+    A = sp.csc_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
 
     best_value = 0
     # Running Hyperparameter search
@@ -58,7 +58,7 @@ for fold_n in trange(5, desc='folds'):
         Atild = sp.csr_matrix(A.dot(W))
 
         # Only focusing on validation data
-        Atild = Atild[sp_tr_data.shape[0]:, :]
+        Atild = Atild[:sp_vd_tr_data.shape[0]]
         # Removing entries from training data
         Atild[sp_vd_tr_data.nonzero()] = .0
 
@@ -83,12 +83,12 @@ for fold_n in trange(5, desc='folds'):
 
     best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
 
-    A_test = sp.csc_matrix(sp.vstack((sp_tr_data, sp_te_tr_data)))
+    A_test = sp.csc_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
 
     W_test = SLIM_parallel(A_test, best_config['alpha'], best_config['l1_ratio'], best_config['max_iter'])
 
     Atild_test = sp.csr_matrix(A_test.dot(W_test))
-    Atild_test = Atild_test[sp_tr_data.shape[0]:, :]
+    Atild_test = Atild_test[:sp_te_tr_data.shape[0]]
     # Removing entries from training data
     Atild_test[sp_te_tr_data.nonzero()] = .0
 

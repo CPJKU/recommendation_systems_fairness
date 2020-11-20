@@ -7,10 +7,10 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
 from algorithms.bpr.bpr import BPR
-from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
+from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS, EXP_SEED
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
-from utils.helper import pickle_dump, pickle_load
+from utils.helper import pickle_dump, pickle_load, reproducible
 
 print('STARTING UNCONTROLLED EXPERIMENTS WITH BPR')
 
@@ -18,7 +18,7 @@ grid = {
     "factors": [10, 50, 100, 200, 500],
     "lr": [1e-3, 1e-4],
     "iter": [1000, 2000, 5000],
-    "reg": [1e-4]
+    "reg": [1e-3, 1e-4]
 }
 pg = ParameterGrid(grid)
 
@@ -31,6 +31,9 @@ for fold_n in trange(5, desc='folds'):
 
     ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
+
+    # Setting seed for reproducibility
+    reproducible(EXP_SEED)
 
     # --- Data --- #
     sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
@@ -46,7 +49,7 @@ for fold_n in trange(5, desc='folds'):
     print("Data Loaded")
 
     # Stacking training data and validation training data
-    A = sp.coo_matrix(sp.vstack((sp_tr_data, sp_vd_tr_data)).T)
+    A = sp.coo_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
 
     best_value = 0
     # Running Hyperparameter search
@@ -57,7 +60,7 @@ for fold_n in trange(5, desc='folds'):
         Atild = BPR(A, config['factors'], config['lr'], config['reg'], config['iter'])
 
         # Only focusing on validation data
-        Atild = Atild[sp_tr_data.shape[0]:, :]
+        Atild = Atild[:sp_vd_tr_data.shape[0]]
         # Removing entries from training data
         Atild[sp_vd_tr_data.nonzero()] = .0
 
@@ -82,11 +85,12 @@ for fold_n in trange(5, desc='folds'):
 
     best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
 
-    A_test = sp.coo_matrix(sp.vstack((sp_tr_data, sp_te_tr_data)).T)
+    A_test = sp.coo_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
 
     Atild_test = BPR(A_test, best_config['factors'], best_config['lr'], best_config['reg'], best_config['iter'])
 
-    Atild_test = Atild_test[sp_tr_data.shape[0]:, :]
+    # Only focusing on test data
+    Atild_test = Atild_test[:sp_te_tr_data.shape[0]]
     # Removing entries from training data
     Atild_test[sp_te_tr_data.nonzero()] = .0
 
