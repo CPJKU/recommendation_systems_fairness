@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet
 from tqdm import trange
 
 
-def SLIM_parallel(A: sp.csc_matrix, elanet: ElasticNet):
+def SLIM_parallel(A: sp.csc_matrix, alpha: float, l1_ratio: float, max_iter: int):
     '''
     SLIM: Sparse Linear Methods for Top-N Recommender Systems -  Xia Ning ; George Karypis
     https://ieeexplore.ieee.org/document/6137254
@@ -15,18 +15,20 @@ def SLIM_parallel(A: sp.csc_matrix, elanet: ElasticNet):
     (code from https://github.com/ruhan/toyslim/blob/master/slim_parallel.py)
 
     :param A: Rating matrix nxm where m in the number of items. Must be a csc_matrix
-    :param elanet: ElasticNet object
+    :param alpha: a + b (a and b are the multipliers of the L1 and L2 penalties, respectively)
+    :param l1_ratio: a / (a + b) (a and b are the multipliers of the L1 and L2 penalties, respectively)
+    :param max_iter: number of iterations to run max for each item
     :return: W weight matrix.
     '''
     warnings.simplefilter("ignore")
 
-    n_users, n_items = A.shape
+    n_items = A.shape[1]
 
     ranges = generate_slices(n_items)
     separated_tasks = []
 
     for from_j, to_j in ranges:
-        separated_tasks.append([from_j, to_j, A, elanet])
+        separated_tasks.append([from_j, to_j, A.copy(), alpha, l1_ratio, max_iter])
 
     with multiprocessing.Pool() as pool:
         results = pool.map(work, separated_tasks)
@@ -43,7 +45,18 @@ def SLIM_parallel(A: sp.csc_matrix, elanet: ElasticNet):
 def work(params):
     from_j, to_j = params[0], params[1]
     A = params[2]
-    elanet = params[3]
+    alpha, l1_ratio, max_iter = params[3], params[4], params[5]
+
+    elanet = ElasticNet(
+        alpha=alpha,
+        l1_ratio=l1_ratio,
+        fit_intercept=False,  # Not considered by SLIM
+        positive=True,  # Constraint in SLIM
+        copy_X=False,  # efficiency reasons
+        max_iter=max_iter,
+        selection="random",  # efficiency reasons
+        tol=1e-4  # assuming a good tolerance
+    )
 
     W_rows_idxs = []
     W_cols_idxs = []
@@ -73,8 +86,9 @@ def work(params):
         W_cols_idxs += [j] * len(widx)
         W_data += list(wdata)
 
-        # reconstrucing the matrix
+        # reconstructing the matrix
         A.data[st_idx:en_idx] = copy
+
     return (W_rows_idxs, W_cols_idxs, W_data)
 
 
