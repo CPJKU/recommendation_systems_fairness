@@ -29,7 +29,7 @@ Experiment status and results will be saved in the `res` folder (created when th
  
 To check the status of your experiment, move in the folder of your experiment (e.g. `slim`):
 ~~~
-cd res/un/slim/<timestamp-start-experiment>/val
+cd res/un/slim/<timestamp-start-experiment>-<dataset-used-(inter.txt)>/val
 ~~~
 
 For a broad overview of the experiments, you can just use `tensorboard` in the folder.
@@ -49,7 +49,7 @@ Experiment status and results will be saved in the `res` folder (created when th
 ### Results
 To check the results of your experiment, move in the folder of your experiment (e.g. `slim`):
 ~~~
-cd res/un/slim/<timestamp-start-experiment>/test
+cd res/un/slim/<timestamp-start-experiment>-<dataset-used-(inter.txt)>/test
 ~~~
 For a broad overview of the experiments, you can just use `tensorboard` in the folder.
 ~~~
@@ -69,5 +69,5 @@ Both files contain a dictionary where the key is the metric function evaluated a
 ### Best configurations
 The best configuration for each algorithm and for each fold is located in:
 ~~~
-cd res/un/slim/<timestamp-start-experiment>/val/<fold-number>/best_config.pkl
+cd res/un/slim/<timestamp-start-experiment>-<dataset-used-(inter.txt)>/val/<fold-number>/best_config.pkl
 ~~~
