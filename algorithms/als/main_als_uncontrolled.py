@@ -8,22 +8,13 @@ from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
-#from algorithms.als.als import ALS
+from algorithms.als.als import ALS
 import implicit
 
 from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
 from utils.helper import pickle_dump, pickle_load
-
-
-def predict(_model, _user_ids):
-    print ("Prediction running ...")
-    _user_factors_set = model.user_factors[_user_ids]
-    scores = _user_factors_set.dot(model.item_factors.T)
-    print ("Prediction done!")
-    
-    return scores
 
 
 print('STARTING UNCONTROLLED EXPERIMENTS WITH ALS')
@@ -46,11 +37,11 @@ for fold_n in trange(5, desc='folds'):
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # --- Data --- #
-    user_items_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
-    user_items_vd_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_tr_data.npz'))
-    user_items_vd_te = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_te_data.npz'))
-    user_items_te_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_tr_data.npz'))
-    user_items_te_te = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_te_data.npz'))
+    sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
+    sp_vd_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_tr_data.npz'))
+    sp_vd_te_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_te_data.npz'))
+    sp_te_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_tr_data.npz'))
+    sp_te_te_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_te_data.npz'))
 
     user_groups_all_traits = dict()
     for trait in DEMO_TRAITS:
@@ -58,24 +49,26 @@ for fold_n in trange(5, desc='folds'):
         user_groups_all_traits[trait] = ds.get_user_groups_indxs(pandas_dir_path, trait)
     print("Data Loaded")
 
-    user_items_vdtr_tr = sp.csc_matrix(sp.vstack((user_items_vd_tr, user_items_tr)))
+    A = sp.csc_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
     
     best_value = 0
     # Running Hyperparameter search
     for config in pg:#tqdm(pg, desc='configs'):
 
+        summ = SummaryWriter(os.path.join(log_val_str, str(config)))
+
+
         model = implicit.als.AlternatingLeastSquares(factors=config["factors"], 
                                                      regularization=config["regularization"],
                                                      iterations=config["iterations"])
     
-        summ = SummaryWriter(os.path.join(log_val_str, str(config)))
-
-        model.fit(user_items_vdtr_tr.T)
+        model = ALS(A, model)
         
-        _predic_user_ids = list(range(user_items_vd_tr.shape[0]))
-        preds = predict(model, _predic_user_ids)
-        
-        true = user_items_vd_te.toarray()
+        _predict_user_ids = list(range(sp_vd_tr_data.shape[0]))
+        _user_factors_set = model.user_factors[_predict_user_ids]
+        preds = _user_factors_set.dot(model.item_factors.T)
+    
+        true = sp_vd_te_data.toarray()
 
         curr_value = eval_metric(preds, true)
 
@@ -100,14 +93,15 @@ for fold_n in trange(5, desc='folds'):
     model = implicit.als.AlternatingLeastSquares(factors=best_config["factors"], 
                                                  regularization=best_config["regularization"],
                                                  iterations=best_config["iterations"])
-    user_items_tetr_tr = sp.csc_matrix(sp.vstack((user_items_te_tr, user_items_tr)))
+    A_test = sp.csc_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
     
-    model.fit(user_items_tetr_tr.T)
+    model = ALS(A_test, model)
         
-    _predic_user_ids = list(range(user_items_te_tr.shape[0]))
-    preds = predict(model, _predic_user_ids)
+    _predict_user_ids = list(range(sp_te_tr_data.shape[0]))
+    _user_factors_set = model.user_factors[_predict_user_ids]
+    preds = _user_factors_set.dot(model.item_factors.T)
 
-    true = user_items_te_te.toarray()
+    true = sp_te_te_data.toarray()
 
     full_metrics = dict()
     full_raw_metrics = dict()

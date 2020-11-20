@@ -13,6 +13,8 @@ from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
 from utils.helper import pickle_dump, pickle_load
+
+from algorithms.knnCF.knn import KNNCF
 from algorithms.knnCF.KNNCFRecommender import UserKNNCF
 
 
@@ -29,7 +31,6 @@ def get_df_dataset(_user_items):
     return pd.DataFrame(_ratings_dict)
 
 def predict(_model, _user_items):
-    print ("Prediction running ...")
     
     scores = []
     _user_cnt = _user_items.shape[0]
@@ -40,9 +41,7 @@ def predict(_model, _user_items):
             _u_res_vec[_item_i] = _model.predict(_user_i, _item_i)
         scores.append(_u_res_vec)
     scores = np.array(scores)
-    
-    print ("Prediction done!")
-    
+        
     return scores
 
 
@@ -64,11 +63,12 @@ for fold_n in trange(5, desc='folds'):
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # --- Data --- #
-    user_items_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
-    user_items_vd_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_tr_data.npz'))
-    user_items_vd_te = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_te_data.npz'))
-    user_items_te_tr = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_tr_data.npz'))
-    user_items_te_te = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_te_data.npz'))
+    sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
+    sp_vd_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_tr_data.npz'))
+    sp_vd_te_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_vd_te_data.npz'))
+    sp_te_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_tr_data.npz'))
+    sp_te_te_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_te_te_data.npz'))
+
 
     user_groups_all_traits = dict()
     for trait in DEMO_TRAITS:
@@ -76,22 +76,22 @@ for fold_n in trange(5, desc='folds'):
         user_groups_all_traits[trait] = ds.get_user_groups_indxs(pandas_dir_path, trait)
     print("Data Loaded")
 
-    user_items_vdtr_tr = sp.csc_matrix(sp.vstack((user_items_vd_tr, user_items_tr)))
+    A = sp.csc_matrix(sp.vstack((sp_vd_tr_data, sp_tr_data)))
     
     best_value = 0
     # Running Hyperparameter search
     for config in pg:#tqdm(pg, desc='configs'):
 
-        model = UserKNNCF(user_num=user_items_vdtr_tr.shape[0], item_num=user_items_vdtr_tr.shape[1], maxk=config["maxk"], shrink=100, similarity='cosine', normalize=True)
-    
         summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
-        _dataset = get_df_dataset(user_items_vdtr_tr)
-        model.fit(_dataset)
+        model = UserKNNCF(user_num=A.shape[0], item_num=A.shape[1], 
+                          maxk=config["maxk"], shrink=100, similarity='cosine', normalize=True)
         
-        preds = predict(model, user_items_vd_tr)
+        model = KNNCF(A, model)
         
-        true = user_items_vd_te.toarray()
+        preds = predict(model, sp_vd_tr_data)
+        
+        true = sp_vd_te_data.toarray()
 
         curr_value = eval_metric(preds, true)
 
@@ -110,19 +110,18 @@ for fold_n in trange(5, desc='folds'):
     
     summ = SummaryWriter(log_te_str)
 
-    
     best_config = pickle_load(os.path.join(log_val_str, 'best_config_fold.pkl'))
 
-    user_items_tetr_tr = sp.csc_matrix(sp.vstack((user_items_te_tr, user_items_tr)))
+    A_test = sp.csc_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
     
-    model = UserKNNCF(user_num=user_items_tetr_tr.shape[0], item_num=user_items_tetr_tr.shape[1], maxk=best_config["maxk"], shrink=100, similarity='cosine', normalize=True)
+    model = UserKNNCF(user_num=A_test.shape[0], item_num=A_test.shape[1], 
+                      maxk=best_config["maxk"], shrink=100, similarity='cosine', normalize=True)
     
-    _dataset = get_df_dataset(user_items_tetr_tr)
-    model.fit(_dataset)
+    model = KNNCF(A_test, model)
         
-    preds = predict(model, user_items_te_tr)
+    preds = predict(model, sp_te_tr_data)
 
-    true = user_items_te_te.toarray()
+    true = sp_te_te_data.toarray()
 
     full_metrics = dict()
     full_raw_metrics = dict()
