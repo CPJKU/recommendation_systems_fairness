@@ -1,13 +1,11 @@
 import os
-from datetime import datetime
 
+from datetime import datetime
 from scipy import sparse as sp
-from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
-from algorithms.slim.slim import SLIM
 from algorithms.slim.slim_parallel import SLIM_parallel
 from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
@@ -55,17 +53,7 @@ for fold_n in trange(5, desc='folds'):
 
         summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
-        elanet = ElasticNet(
-            alpha=config["alpha"],
-            l1_ratio=config["l1_ratio"],
-            fit_intercept=False,  # Not considered by SLIM
-            positive=True,  # Constraint in SLIM
-            copy_X=False,  # efficiency reasons
-            max_iter=config["max_iter"],
-            selection="random",  # efficiency reasons
-            tol=1e-4  # assuming a good tolerance
-        )
-        W = SLIM_parallel(A, elanet)
+        W = SLIM_parallel(A, config['alpha'], config['l1_ratio'], config['max_iter'])
 
         Atild = sp.csr_matrix(A.dot(W))
 
@@ -96,18 +84,8 @@ for fold_n in trange(5, desc='folds'):
     best_config = pickle_load(os.path.join(log_val_str, 'best_config.pkl'))
 
     A_test = sp.csc_matrix(sp.vstack((sp_tr_data, sp_te_tr_data)))
-    elanet = ElasticNet(
-        alpha=best_config["alpha"],
-        l1_ratio=best_config["l1_ratio"],
-        fit_intercept=False,  # Not considered by SLIM
-        positive=True,  # Constraints in SLIM
-        copy_X=False,  # efficiency reasons
-        max_iter=best_config["max_iter"],
-        selection="random",  # efficiency reasons
-        tol=1e-4  # assuming a good tolerance
-    )
 
-    W_test = SLIM(A_test, elanet)
+    W_test = SLIM_parallel(A_test, best_config['alpha'], best_config['l1_ratio'], best_config['max_iter'])
 
     Atild_test = sp.csr_matrix(A_test.dot(W_test))
     Atild_test = Atild_test[sp_tr_data.shape[0]:, :]
