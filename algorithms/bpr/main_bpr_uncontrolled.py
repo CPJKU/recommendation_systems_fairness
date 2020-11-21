@@ -17,7 +17,7 @@ print('STARTING UNCONTROLLED EXPERIMENTS WITH BPR')
 grid = {
     "factors": [10, 50, 100, 200, 500],
     "lr": [1e-3, 1e-4],
-    "iter": [1000, 2000, 5000],
+    "iter": [500, 1000, 2000],
     "reg": [1e-3, 1e-4]
 }
 pg = ParameterGrid(grid)

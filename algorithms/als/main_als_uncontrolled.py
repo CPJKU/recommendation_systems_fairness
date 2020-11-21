@@ -16,7 +16,7 @@ print('STARTING UNCONTROLLED EXPERIMENTS WITH ALS')
 
 grid = {
     "factors": [10, 50, 100, 200, 500],
-    "iterations": [1000, 2000, 5000],
+    "iterations": [500, 1000, 2000],
     "regularization": [1e-3, 1e-4]
 }
 pg = ParameterGrid(grid)
