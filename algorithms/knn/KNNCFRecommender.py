@@ -12,16 +12,13 @@ Created on 23/10/17
 @author: Maurizio Ferrari Dacrema
 """
 
+import sys
+import time
+from collections import defaultdict
 
-import os, pdb
-import time, sys
-import heapq
 import numpy as np
 import scipy.sparse as sp
 from enum import Enum
-from collections import defaultdict
-
-
 
 
 def check_matrix(X, format='csc', dtype=np.float32):
@@ -394,9 +391,9 @@ class SimilarityFunction(Enum):
 
 
 class Compute_Similarity:
-    def __init__(self, dataMatrix, 
-                 use_implementation = "density", 
-                 similarity = None, **args):
+    def __init__(self, dataMatrix,
+                 use_implementation="density",
+                 similarity=None, **args):
         """
         Interface object that will call the appropriate similarity implementation
         :param dataMatrix:
@@ -419,9 +416,9 @@ class Compute_Similarity:
             elif isinstance(dataMatrix, sp.spmatrix):
                 shape = dataMatrix.shape
 
-                num_cells = shape[0]*shape[1]
+                num_cells = shape[0] * shape[1]
 
-                sparsity = dataMatrix.nnz/num_cells
+                sparsity = dataMatrix.nnz / num_cells
 
                 self.dense = sparsity > 0.5
 
@@ -437,7 +434,7 @@ class Compute_Similarity:
 
         if use_implementation == "cython":
             try:
-                from daisy.model.extensions.simlib_cython import Compute_Similarity_Cython
+                from algorithms.knn.Compute_Similary_Cython import Compute_Similarity_Cython
                 self.compute_similarity_object = Compute_Similarity_Cython(dataMatrix, **args)
 
             except ImportError:
@@ -448,14 +445,14 @@ class Compute_Similarity:
             self.compute_similarity_object = Compute_Similarity_Python(dataMatrix, **args)
 
         else:
-            raise  ValueError("Compute_Similarity: value for argument 'use_implementation' not recognized")
+            raise ValueError("Compute_Similarity: value for argument 'use_implementation' not recognized")
 
-    def compute_similarity(self,  **args):
+    def compute_similarity(self, **args):
         return self.compute_similarity_object.compute_similarity(**args)
 
 
 class ItemKNNCF(object):
-    def __init__(self, user_num, item_num, maxk=40, shrink=100, 
+    def __init__(self, user_num, item_num, maxk=40, shrink=100,
                  similarity='cosine', normalize=True):
         """
         ItemKNN recommender
@@ -487,23 +484,42 @@ class ItemKNNCF(object):
             self.yr[int(row['user'])].append((int(row['item']), row['rating']))
 
         train = self._convert_df(self.user_num, self.item_num, train_set)
-        
+
         cold_items_mask = np.ediff1d(train.tocsc().indptr) == 0
 
         if cold_items_mask.any():
             print("{}: Detected {} ({:.2f} %) cold items.".format(
-                self.RECOMMENDER_NAME, cold_items_mask.sum(), cold_items_mask.sum() / len(cold_items_mask)*100))
+                self.RECOMMENDER_NAME, cold_items_mask.sum(), cold_items_mask.sum() / len(cold_items_mask) * 100))
 
-        similarity = Compute_Similarity(train, 
-                                        shrink=self.shrink, 
+        similarity = Compute_Similarity(train,
+                                        shrink=self.shrink,
                                         topK=self.k,
-                                        normalize=self.normalize, 
+                                        normalize=self.normalize,
                                         similarity=self.similarity)
-        
+
         w_sparse = similarity.compute_similarity()
         w_sparse = w_sparse.tocsc()
 
         self.pred_mat = train.dot(w_sparse).tolil()
+
+    def faster_fit(self, train_csc):
+        # Avoids data manipulation
+        cold_items_mask = np.ediff1d(train_csc.indptr) == 0
+
+        if cold_items_mask.any():
+            print("{}: Detected {} ({:.2f} %) cold items.".format(
+                self.RECOMMENDER_NAME, cold_items_mask.sum(), cold_items_mask.sum() / len(cold_items_mask) * 100))
+
+        similarity = Compute_Similarity(train_csc,
+                                        shrink=self.shrink,
+                                        topK=self.k,
+                                        normalize=self.normalize,
+                                        similarity=self.similarity)
+
+        w_sparse = similarity.compute_similarity()
+        w_sparse = w_sparse.tocsc()
+
+        self.pred_mat = train_csc.dot(w_sparse).tolil()
 
     def predict(self, u, i):
         if u >= self.user_num or i >= self.item_num:
@@ -523,7 +539,7 @@ class ItemKNNCF(object):
 
 
 class UserKNNCF(object):
-    def __init__(self, user_num, item_num, maxk=40, shrink=100, 
+    def __init__(self, user_num, item_num, maxk=40, shrink=100,
                  similarity='cosine', normalize=True):
         """
         UserKNN recommender
@@ -553,13 +569,13 @@ class UserKNNCF(object):
         cold_user_mask = np.ediff1d(train.tocsc().indptr) == 0
         if cold_user_mask.any():
             print("{}: Detected {} ({:.2f} %) cold users.".format(
-                self.RECOMMENDER_NAME, cold_user_mask.sum(), cold_user_mask.sum()/len(cold_user_mask)*100))
+                self.RECOMMENDER_NAME, cold_user_mask.sum(), cold_user_mask.sum() / len(cold_user_mask) * 100))
 
-        similarity = Compute_Similarity(train.T, 
-                                        shrink=self.shrink, 
+        similarity = Compute_Similarity(train.T,
+                                        shrink=self.shrink,
                                         topK=self.k,
-                                        normalize=self.normalize, 
-                                        similarity = self.similarity)
+                                        normalize=self.normalize,
+                                        similarity=self.similarity)
 
         w_sparse = similarity.compute_similarity()
         w_sparse = w_sparse.tocsc()
