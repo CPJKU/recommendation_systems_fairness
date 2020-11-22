@@ -109,6 +109,7 @@ for fold_n in trange(5, desc='folds'):
     summ.add_hparams({**best_config, 'fold_n': fold_n}, full_metrics)
     summ.flush()
 
-    # Saving results
+    # Saving results and predictions
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
+    pickle_dump(preds, os.path.join(log_te_str, 'preds.pkl'))

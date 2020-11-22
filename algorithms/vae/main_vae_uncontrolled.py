@@ -141,14 +141,14 @@ for fold_n in trange(5, desc='folds'):
         all_logits.append(logits.detach().cpu().numpy())
         all_y.append(y.detach().cpu().numpy())
 
-    all_y = np.concatenate(all_y)
-    all_logits = np.concatenate(all_logits)
+    preds = np.concatenate(all_logits)
+    true = np.concatenate(all_y)
 
     full_metrics = dict()
     full_raw_metrics = dict()
     for trait in DEMO_TRAITS:
         user_groups = user_groups_all_traits[trait]
-        _, metrics, metrics_raw = eval_proced(all_logits, all_y, 'test', user_groups)
+        _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
         full_metrics.update(metrics)
         full_raw_metrics.update(metrics_raw)
 
@@ -156,6 +156,7 @@ for fold_n in trange(5, desc='folds'):
     summ.add_hparams({**best_config, 'fold_n': fold_n}, full_metrics)
     summ.flush()
 
-    # Saving results
+    # Saving results and predictions
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
+    pickle_dump(preds, os.path.join(log_te_str, 'preds.pkl'))
