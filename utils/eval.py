@@ -6,6 +6,9 @@ from typing import List
 from conf import LEVELS
 from utils.data_splitter import UserGroup
 
+import pandas as pd
+import pdb
+
 
 def NDCG_at_k_batch(logits, y_true, k=10):
     '''
@@ -167,6 +170,54 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
     return recall
 
+def Diversity_Shannon_at_k_batch(logits,
+                                 y_true,
+                                 k=10,
+                                 tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv",
+                                 tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
+    
+    """
+    :param logits: the un-normalised predictions
+    :param y_true: the true predictions (binary)
+    :param k: cut-off value
+    :param tids_path: path to the mapping to original track ids
+    :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
+    :return: Diversity based on Shannon entropy at k
+    """
+    # TODO: create general (track_id -- artist_id) index for speed and beauty
+    
+    n = logits.shape[0]
+    m = logits.shape[1]
+    dummy_column = np.arange(n).reshape(n, 1)
+    
+    # getting top k indicies
+    idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
+    topk_part = logits[dummy_column, idx_topk_part]
+    idx_part = np.argsort(-topk_part, axis=1)
+    idx_topk = idx_topk_part[dummy_column, idx_part]
+    
+    # mapping back to original indicies
+    tids = pd.read_csv(tids_path)
+    
+    orig_idx_topk = np.empty((0,k), int)
+    for user in idx_topk:
+        orig_idx_topk = np.append(orig_idx_topk, np.array([tids.loc[user]['track_id']]), axis=0)
+    
+    # retrieving track names
+    track_names = pd.read_csv(tracklist_path, sep='\t', header=None)
+    
+    # # creating batch-local (track -- artist) index
+    # # hoping to save a bit of time while while calculating histograms for users
+    batch_recommended = set(np.concatenate(orig_idx_topk))
+    artist_idx = track_names.loc[batch_recommended][0]
+    
+    res = np.array([])
+    for user in orig_idx_topk:
+        user_histogram = artist_idx.loc[user].value_counts() / k # WE ASSUME THAT ALWAYS K ITEMS ARE RECOMMENDED
+        user_entropy = -np.sum(user_histogram * np.log2(user_histogram))
+        res = np.append(res, user_entropy)
+    pdb.set_trace()
+    return res
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
     '''
@@ -181,9 +232,11 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
     '''
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
-
+    #
+    # Diversity_Shannon_at_k_batch(preds,preds)
+    #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
-
+    
     metrics = dict()
     metrics_raw = dict()
     trait = user_groups[0].type
