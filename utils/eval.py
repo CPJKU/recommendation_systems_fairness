@@ -171,7 +171,6 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
     return recall
 
 def Diversity_Shannon_at_k_batch(logits,
-                                 y_true,
                                  k=10,
                                  tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv",
                                  tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
@@ -207,16 +206,16 @@ def Diversity_Shannon_at_k_batch(logits,
     track_names = pd.read_csv(tracklist_path, sep='\t', header=None)
     
     # # creating batch-local (track -- artist) index
-    # # hoping to save a bit of time while while calculating histograms for users
+    # # hoping to save a bit of time while calculating histograms for each user
     batch_recommended = set(np.concatenate(orig_idx_topk))
     artist_idx = track_names.loc[batch_recommended][0]
     
     res = np.array([])
     for user in orig_idx_topk:
-        user_histogram = artist_idx.loc[user].value_counts() / k # WE ASSUME THAT ALWAYS K ITEMS ARE RECOMMENDED
+        user_histogram = artist_idx.loc[user].value_counts() / k # WE EVALUATE TOP K RECOMMENDED
         user_entropy = -np.sum(user_histogram * np.log2(user_histogram))
         res = np.append(res, user_entropy)
-    pdb.set_trace()
+    # pdb.set_trace()
     return res
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
@@ -233,7 +232,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    # Diversity_Shannon_at_k_batch(preds,preds)
+    # Diversity_Shannon_at_k_batch(np.array(preds)
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
