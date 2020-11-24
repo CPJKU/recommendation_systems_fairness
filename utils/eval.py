@@ -219,7 +219,7 @@ def Diversity_Shannon_at_k_batch(logits,
         if normalized and artist_range > 1:
             user_entropy = user_entropy/np.log2(artist_range)
         res = np.append(res, user_entropy)
-    pdb.set_trace()
+    # pdb.set_trace()
     return res
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
@@ -236,8 +236,8 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    Diversity_Shannon_at_k_batch(logits=preds, k=3,
-                                  tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
+    # Diversity_Shannon_at_k_batch(logits=preds, k=3,
+    #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
