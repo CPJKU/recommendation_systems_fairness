@@ -224,7 +224,7 @@ def DiversityShannon_Coverage_at_k_batch(logits,
     # calculating coverage because we can
     cov = len(batch_recommended)/m
     
-    pdb.set_trace()
+    # pdb.set_trace()
     return div, cov
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
@@ -241,8 +241,8 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    DiversityShannon_Coverage_at_k_batch(logits=preds, k=10,
-                                  tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
+    #DiversityShannon_Coverage_at_k_batch(logits=preds, k=10,
+    #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
