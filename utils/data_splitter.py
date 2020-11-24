@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+from scipy import sparse as sp
 
 from utils.helper import idx_split, filt, random_item_splitter, playcounts, permute, sparsify, save_data, mod_split
 
@@ -16,6 +17,9 @@ class UserGroup:
         self.type = type
         self.name = name
         self.uids = uids
+        self.tr_uids = None
+        self.vd_uids = None
+        self.te_uids = None
         self.tr_idxs = None
         self.vd_idxs = None
         self.te_idxs = None
@@ -291,7 +295,7 @@ class DataSplitter:
             # User ids are encoded by position
             m_uids = self.demo[self.demo.gender == 'm'].index.values
             f_uids = self.demo[self.demo.gender == 'f'].index.values
-            return [UserGroup('gender', 'm', m_uids), UserGroup('gender', 'f', f_uids)]
+            return [UserGroup(demo_trait, 'm', m_uids), UserGroup(demo_trait, 'f', f_uids)]
         else:
             raise ValueError('Demographic trait not yet implemented')
 
@@ -309,13 +313,76 @@ class DataSplitter:
         te_data = pd.read_csv(os.path.join(pandas_dir_path, 'te_data.csv'))[
             ['user_id', 'new_user_id']].drop_duplicates()
 
-        if demo_trait is not None:
-            user_groups = self.get_user_groups(demo_trait)
-            for user_group in user_groups:
-                user_group.tr_idxs = tr_data[tr_data.user_id.isin(set(user_group.uids))].new_user_id.values
-                user_group.vd_idxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
-                user_group.te_idxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
-        else:
-            raise ValueError('demo_trait has to be non-null. Not yet implemented!')
+        user_groups = self.get_user_groups(demo_trait)
+        for user_group in user_groups:
+            user_group.tr_uids = tr_data[tr_data.user_id.isin(set(user_group.uids))].user_id.values
+            user_group.vd_uids = vd_data[vd_data.user_id.isin(set(user_group.uids))].user_id.values
+            user_group.te_uids = te_data[te_data.user_id.isin(set(user_group.uids))].user_id.values
+            user_group.tr_idxs = tr_data[tr_data.user_id.isin(set(user_group.uids))].new_user_id.values
+            user_group.vd_idxs = vd_data[vd_data.user_id.isin(set(user_group.uids))].new_user_id.values
+            user_group.te_idxs = te_data[te_data.user_id.isin(set(user_group.uids))].new_user_id.values
 
         return user_groups
+
+    def up_sample_train_data_path(self, pandas_dir_path: str, scipy_dir_path: str, demo_trait=None):
+        '''
+        Upsamples train data by adding records to tr_data.csv and rows to sp_tr_data.npz
+        :param demo_trait:
+        :param pandas_dir_path:
+        :param scipy_dir_path:
+        :return:
+        '''
+
+        up_tr_data_path = os.path.join(pandas_dir_path, 'up_tr_data.csv')
+        up_sp_tr_data_path = os.path.join(scipy_dir_path, 'up_sp_tr_data.npz')
+
+        if os.path.isfile(up_tr_data_path) and os.path.isfile(up_sp_tr_data_path):
+            # Already computed
+            return up_tr_data_path, up_sp_tr_data_path
+
+        print('Data not found - Running Upsampling')
+
+        tr_data = pd.read_csv(os.path.join(pandas_dir_path, 'tr_data.csv'))
+        sp_tr_data = sp.load_npz(os.path.join(scipy_dir_path, 'sp_tr_data.npz'))
+
+        if demo_trait != 'gender':
+            raise ValueError('Upsampling not yet implemented for other traits!')
+
+        male_group, female_group = self.get_user_groups_indxs(pandas_dir_path, demo_trait)
+
+        # ASSUMING THAT FEMALE IS THE MINORITY GROUP
+        n_samples = len(male_group.tr_uids) - len(female_group.tr_uids)
+        assert n_samples > 0, 'Number of samples for Upsampling is negative or 0. Are you sure you are using the right user groups?'
+
+        # Sampling randomly with replacement uids from the specified user_group
+        chosen = np.random.choice(np.arange(len(female_group.tr_uids)), n_samples, replace=True)
+        chosen_uids = female_group.tr_uids[chosen]
+        chosen_idxs = female_group.tr_idxs[chosen]
+
+        # -- Updating tr_data.csv -- #
+        uids, counts = np.unique(chosen_uids, return_counts=True)
+        dup = pd.DataFrame({'user_id': uids, 'repeat': counts})
+
+        # Duplicate by index
+        dup = dup.set_index('user_id')['repeat']
+        dup = dup.loc[dup.index.repeat(dup)]
+        # Removing not used_information
+        dup = dup.reset_index().drop(columns='repeat')
+
+        # Assiging a new user_id to the duplicated users
+        dup['new_user_id'] = range(tr_data.new_user_id.nunique(), tr_data.user_id.nunique() + len(dup))
+
+        # Fetching the user_ids from the original dataset and merging with the duplicates.
+        up_uids = pd.concat([tr_data[['user_id', 'new_user_id']].drop_duplicates(), dup])
+
+        # Finally, duplicating the interaction data
+        up_tr_data = pd.merge(tr_data.drop(columns='new_user_id'), up_uids, how='left', on='user_id').sort_values(
+            'new_user_id')
+
+        up_data = sp_tr_data[chosen_idxs, :]
+        up_sp_tr_data = sp.csr_matrix(sp.vstack((sp_tr_data, up_data)))
+
+        up_tr_data.to_csv(up_tr_data_path, index=False)
+        sp.save_npz(up_sp_tr_data_path, up_sp_tr_data)
+
+        return up_tr_data_path, up_sp_tr_data_path
