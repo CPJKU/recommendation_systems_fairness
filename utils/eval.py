@@ -232,7 +232,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    # Diversity_Shannon_at_k_batch(np.array(preds)
+    # Diversity_Shannon_at_k_batch(preds)
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
