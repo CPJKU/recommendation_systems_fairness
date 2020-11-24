@@ -171,8 +171,8 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
     return recall
 
 def Diversity_Shannon_at_k_batch(logits,
+                                 tids_path,
                                  k=10,
-                                 tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv",
                                  tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
     
     """
@@ -232,7 +232,8 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    # Diversity_Shannon_at_k_batch(preds)
+    # Diversity_Shannon_at_k_batch(logits=preds,
+    #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
