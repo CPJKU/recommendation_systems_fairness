@@ -12,7 +12,9 @@ from utils.helper import pickle_load, pickle_dump
 
 print('STARTING EVALUATION WITH SLIM')
 
-experiment_datetime = '2020-11-19 18:08:59.240914'
+# experiment_datetime = '2020-11-20 13:18:38.883354' # sampled_100000_items
+# experiment_datetime = '2020-11-19 16:32:40.811648'  # up_sampled
+experiment_datetime = '2020-11-19 18:08:59.240914'  # down_sampled
 
 for fold_n in trange(5, desc='folds'):
 
@@ -66,4 +68,3 @@ for fold_n in trange(5, desc='folds'):
     # Saving results and predictions
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
-    pickle_dump(preds, os.path.join(log_te_str, 'preds.pkl'))

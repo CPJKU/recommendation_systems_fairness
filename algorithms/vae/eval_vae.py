@@ -15,9 +15,11 @@ from utils.helper import reproducible, pickle_dump, pickle_load
 
 print('STARTING EVALUATION WITH VAE')
 
-device = 'cuda:3' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
 
-experiment_datetime = '2020-11-19 09:27:38.019449'
+#experiment_datetime = '2020-11-19 09:30:17.085691' # sampled_100000_items
+#experiment_datetime = '2020-11-19 09:29:30.926032' # up_sampled
+experiment_datetime = '2020-11-19 09:27:38.019449' # down_sampled
 
 for fold_n in trange(5, desc='folds'):
 
@@ -83,4 +85,3 @@ for fold_n in trange(5, desc='folds'):
     # Saving results and predictions
     pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
     pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
-    pickle_dump(preds, os.path.join(log_te_str, 'preds.pkl'))
