@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
 from algorithms.ease.ease import EASE
-from conf import UN_LOG_VAL_STR, UN_LOG_TE_STR, DATA_PATH, DEMO_PATH, UN_OUT_DIR, DEMO_TRAITS
+from conf import LOG_VAL_STR, LOG_TE_STR, DATA_PATH, DEMO_PATH, OUT_DIR, DEMO_TRAITS
 from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_metric
 from utils.helper import pickle_dump, pickle_load
@@ -23,10 +23,10 @@ now = datetime.now()
 
 for fold_n in trange(5, desc='folds'):
 
-    log_val_str = UN_LOG_VAL_STR.format('ease', now, os.path.basename(DATA_PATH), fold_n)
-    log_te_str = UN_LOG_TE_STR.format('ease', now, os.path.basename(DATA_PATH), fold_n)
+    log_val_str = LOG_VAL_STR.format('ease', now, os.path.basename(DATA_PATH), fold_n)
+    log_te_str = LOG_TE_STR.format('ease', now, os.path.basename(DATA_PATH), fold_n)
 
-    ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=UN_OUT_DIR)
+    ds = DataSplitter(DATA_PATH, DEMO_PATH, out_dir=OUT_DIR)
     pandas_dir_path, scipy_dir_path, uids_dic_path, tids_path = ds.get_paths(fold_n=fold_n)
 
     # --- Data --- #
