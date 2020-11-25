@@ -172,15 +172,15 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
 def DiversityShannon_Coverage_at_k_batch(logits,
                                  tids_path,
-                                 entropy_normalized=True,
                                  k=10,
+                                 entropy_normalized=True,
                                  tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
     
     """
     :param logits: the un-normalised predictions
     :param tids_path: path to the mapping to original track ids
-    :param entropy_normalized: set to True to normalize entropy values
     :param k: cut-off value
+    :param entropy_normalized: set to True to normalize entropy values
     :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
     :return: (1) Diversity based on Shannon entropy (2) Coverage - proportion of items recommended to at least one user (at k)
     """
@@ -227,24 +227,56 @@ def DiversityShannon_Coverage_at_k_batch(logits,
     # pdb.set_trace()
     return diversity, coverage
 
-## eval_proced version 
-def eval_proced2(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
+def Coverage_at_k_batch(logits,
+                        k=10):
+    
+    """
+    :param logits: the un-normalised predictions
+    :param k: cut-off value
+    :return: Coverage - proportion of items recommended to at least one user (at k)
+    """
+    # TODO: create general (track_id -- artist_id) index for speed and beauty
+    
+    n_users = logits.shape[0]
+    n_items = logits.shape[1]
+    dummy_column = np.arange(n_users).reshape(n_users, 1)
+    
+    # getting top k indicies
+    idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
+    topk_part = logits[dummy_column, idx_topk_part]
+    idx_part = np.argsort(-topk_part, axis=1)
+    idx_topk = idx_topk_part[dummy_column, idx_part]
+    
+    batch_recommended = set(np.concatenate(idx_topk))
+    
+    coverage = len(batch_recommended)/n_items
+    
+    pdb.set_trace()
+    return coverage
+
+## eval_proced version with diversity and coverage
+def eval_proced2_beyond_accuracy(preds: np.ndarray,
+                 true: np.ndarray,
+                 tag: str,
+                 user_groups: List[UserGroup],
+                 tids_path: str,
+                 entropy_norm=True,
+                 tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
     '''
     Performs the evaluation procedure.
     :param preds: predictions
     :param true: true values
     :param tag: should be either val or test
     :param user_groups: array of UserGroup objects. It is used to extract the results from preds and true.
+    :param tids_path: path to the mapping to original track ids for current fold
+    :param entropy_norm: set to False not to normalize entropy used in diversity metric
+    :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
     :return: eval_metric, value of the metric considered for validation purposes
             metrics, dictionary of the average metrics for all users, high group, and low group
             metrics_raw, dictionary of the metrics (not averaged) for high group, and low group
     '''
-
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
-    #
-    #DiversityShannon_Coverage_at_k_batch(logits=preds, k=10,
-    #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
-    #
+    
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
     metrics = dict()
