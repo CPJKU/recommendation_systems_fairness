@@ -25,3 +25,7 @@ DOWN_DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_si
 DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_inter.txt'
 DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_demo.txt'
 OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/{}/'
+
+# Paths for quick tests
+#DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_1000_items_inter.txt'
+#DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_1000_items_demo.txt'
