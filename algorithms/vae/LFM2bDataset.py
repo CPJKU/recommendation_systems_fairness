@@ -9,7 +9,8 @@ class LFM2bDataset(Dataset):
     Lastfm-2b Dataset
     '''
 
-    def __init__(self, scipy_dir_path, pandas_dir_path=None, uids_dic_path=None, which='train', transform=None):
+    def __init__(self, scipy_dir_path, pandas_dir_path=None, uids_dic_path=None, which='train', transform=None,
+                 up_sample=False):
 
         self.scipy_dir_path = scipy_dir_path
         self.pandas_dir_path = pandas_dir_path
@@ -17,7 +18,8 @@ class LFM2bDataset(Dataset):
         self.which = which
 
         if self.which == "train":
-            self.data = sparse.load_npz(os.path.join(self.scipy_dir_path + "sp_tr_data.npz"))
+            self.data = sparse.load_npz(
+                os.path.join(self.scipy_dir_path, "sp_tr_data.npz" if not up_sample else 'up_sp_tr_data.npz'))
             self.targets = self.data
         elif self.which == "val":
             self.data = sparse.load_npz(os.path.join(self.scipy_dir_path + "sp_vd_tr_data.npz"))
