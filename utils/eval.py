@@ -172,15 +172,15 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
 def DiversityShannon_Coverage_at_k_batch(logits,
                                  tids_path,
-                                 normalized=True,
+                                 entropy_normalized=True,
                                  k=10,
                                  tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
     
     """
     :param logits: the un-normalised predictions
-    :param y_true: the true predictions (binary)
-    :param k: cut-off value
     :param tids_path: path to the mapping to original track ids
+    :param entropy_normalized: set to True to normalize entropy values
+    :param k: cut-off value
     :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
     :return: (1) Diversity based on Shannon entropy (2) Coverage - proportion of items recommended to at least one user (at k)
     """
@@ -212,22 +212,23 @@ def DiversityShannon_Coverage_at_k_batch(logits,
     artist_idx = track_names.loc[batch_recommended][0]
     
     # calculating diversity
-    div = np.array([])
+    diversity = np.array([])
     for user in orig_idx_topk:
         user_histogram = artist_idx.loc[user].value_counts() / k # WE EVALUATE TOP K RECOMMENDED
         user_entropy = -np.sum(user_histogram * np.log2(user_histogram))
         artist_range = len(user_histogram)
-        if normalized and artist_range > 1:
+        if entropy_normalized and artist_range > 1:
             user_entropy = user_entropy/np.log2(artist_range)
-        div = np.append(div, user_entropy)
+        diversity = np.append(diversity, user_entropy)
     
     # calculating coverage because we can
-    cov = len(batch_recommended)/m
+    coverage = len(batch_recommended)/m
     
     # pdb.set_trace()
-    return div, cov
+    return diversity, coverage
 
-def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
+## eval_proced version 
+def eval_proced2(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
     '''
     Performs the evaluation procedure.
     :param preds: predictions
@@ -244,6 +245,44 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
     #DiversityShannon_Coverage_at_k_batch(logits=preds, k=10,
     #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
     #
+    true = sp.csr_matrix(true)  # temporary #TODO: to remove
+    
+    metrics = dict()
+    metrics_raw = dict()
+    trait = user_groups[0].type
+    for lev in LEVELS:
+        for metric_name, metric in zip(['ndcg', 'recall'], [NDCG_binary_at_k_batch, Recall_binary_at_k_batch]):
+
+            # Compute metrics for all users
+            res = metric(preds, true, lev)
+            metrics['{}/{}_at_{}'.format(tag, metric_name, lev)] = np.mean(res)
+            metrics_raw['{}/{}_at_{}'.format(tag, metric_name, lev)] = res
+
+            # Split the metrics on user group basis
+            for user_group in user_groups:
+                user_group_res = res[user_group.vd_idxs if tag == 'val' else user_group.te_idxs]
+                metrics['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
+                    user_group_res)
+                metrics_raw['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = user_group_res
+
+    eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
+    return eval_metric, metrics, metrics_raw
+##
+
+def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
+    '''
+    Performs the evaluation procedure.
+    :param preds: predictions
+    :param true: true values
+    :param tag: should be either val or test
+    :param user_groups: array of UserGroup objects. It is used to extract the results from preds and true.
+    :return: eval_metric, value of the metric considered for validation purposes
+            metrics, dictionary of the average metrics for all users, high group, and low group
+            metrics_raw, dictionary of the metrics (not averaged) for high group, and low group
+    '''
+
+    assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
+    
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
     
     metrics = dict()
