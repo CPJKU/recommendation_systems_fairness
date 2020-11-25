@@ -170,8 +170,9 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
     return recall
 
-def Diversity_Shannon_at_k_batch(logits,
+def DiversityShannon_Coverage_at_k_batch(logits,
                                  tids_path,
+                                 normalized=True,
                                  k=10,
                                  tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
     
@@ -181,7 +182,7 @@ def Diversity_Shannon_at_k_batch(logits,
     :param k: cut-off value
     :param tids_path: path to the mapping to original track ids
     :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
-    :return: Diversity based on Shannon entropy at k
+    :return: (1) Diversity based on Shannon entropy (2) Coverage - proportion of items recommended to at least one user (at k)
     """
     # TODO: create general (track_id -- artist_id) index for speed and beauty
     
@@ -202,7 +203,7 @@ def Diversity_Shannon_at_k_batch(logits,
     for user in idx_topk:
         orig_idx_topk = np.append(orig_idx_topk, np.array([tids.loc[user]['track_id']]), axis=0)
     
-    # retrieving track names
+    # loading track names
     track_names = pd.read_csv(tracklist_path, sep='\t', header=None)
     
     # # creating batch-local (track -- artist) index
@@ -210,13 +211,21 @@ def Diversity_Shannon_at_k_batch(logits,
     batch_recommended = set(np.concatenate(orig_idx_topk))
     artist_idx = track_names.loc[batch_recommended][0]
     
-    res = np.array([])
+    # calculating diversity
+    div = np.array([])
     for user in orig_idx_topk:
         user_histogram = artist_idx.loc[user].value_counts() / k # WE EVALUATE TOP K RECOMMENDED
         user_entropy = -np.sum(user_histogram * np.log2(user_histogram))
-        res = np.append(res, user_entropy)
+        artist_range = len(user_histogram)
+        if normalized and artist_range > 1:
+            user_entropy = user_entropy/np.log2(artist_range)
+        div = np.append(div, user_entropy)
+    
+    # calculating coverage because we can
+    cov = len(batch_recommended)/m
+    
     # pdb.set_trace()
-    return res
+    return div, cov
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
     '''
@@ -232,7 +241,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     #
-    # Diversity_Shannon_at_k_batch(logits=preds,
+    #DiversityShannon_Coverage_at_k_batch(logits=preds, k=10,
     #                              tids_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/fold_n/sampled_1000_items_inter/0/new_tids.csv")
     #
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
