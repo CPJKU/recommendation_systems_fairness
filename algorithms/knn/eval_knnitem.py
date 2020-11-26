@@ -8,13 +8,13 @@ from tqdm import trange
 from algorithms.knn.knn import ItemKNN
 from conf import LOG_VAL_STR, LOG_TE_STR, DATA_PATH, DEMO_PATH, OUT_DIR, DEMO_TRAITS, DOWN_DEMO_PATH, DOWN_DATA_PATH
 from utils.data_splitter import DataSplitter
-from utils.eval import eval_proced
+from utils.eval import eval_proced2_beyond_accuracy
 from utils.helper import pickle_dump, pickle_load
 
 best_configs = {
-    'standard': '',
-    'up_sample': '',
-    'down_sample': ''
+    'standard': '2020-11-25 10:21:49.480511',
+    'up_sample': '2020-11-25 10:30:33.106171',
+    'down_sample': '2020-11-25 10:30:21.244073'
 }
 
 if __name__ == '__main__':
@@ -79,7 +79,15 @@ if __name__ == '__main__':
         full_raw_metrics = dict()
         for trait in DEMO_TRAITS:
             user_groups = user_groups_all_traits[trait]
-            _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
+            # _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
+
+            _, metrics, metrics_raw = eval_proced2_beyond_accuracy(preds=preds,
+                                                                   true=true,
+                                                                   tag='test',
+                                                                   user_groups=user_groups,
+                                                                   tids_path=tids_path,
+                                                                   entropy_norm=True)
+
             full_metrics.update(metrics)
             full_raw_metrics.update(metrics_raw)
 
@@ -88,5 +96,5 @@ if __name__ == '__main__':
         summ.flush()
 
         # Saving results and predictions
-        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
-        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
+        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics_beyond_accuracy.pkl'))
+        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics_beyond_accuracy.pkl'))

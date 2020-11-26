@@ -3,7 +3,7 @@ from scipy import sparse as sp
 from algorithms.knn.KNNCFRecommender import ItemKNNCF
 
 
-def ItemKNN(A: sp.csc_matrix , maxk: int, shrink: int, similarity: str, normalize: bool):
+def ItemKNN(A: sp.csc_matrix, maxk: int, shrink: int, similarity: str, normalize: bool):
     '''
     :param A: Rating matrix nxm where m in the number of items. Must be a csc_matrix
     :param model: implicit.als.AlternatingLeastSquares object

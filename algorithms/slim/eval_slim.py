@@ -8,17 +8,13 @@ from tqdm import trange
 from algorithms.slim.slim_parallel import SLIM_parallel
 from conf import DATA_PATH, LOG_TE_STR, LOG_VAL_STR, OUT_DIR, DEMO_PATH, DEMO_TRAITS, DOWN_DATA_PATH, DOWN_DEMO_PATH
 from utils.data_splitter import DataSplitter
-from utils.eval import eval_proced, eval_proced2_beyond_accuracy
+from utils.eval import eval_proced2_beyond_accuracy
 from utils.helper import pickle_dump, pickle_load
 
-import pdb
-import time
-
 best_configs = {
-    #'standard': '2020-11-26 09:00:11.400231',# Oleg
-    'standard': '',
-    'up_sample': '',
-    'down_sample': ''
+    'standard': '2020-11-20 13:18:38.883354',
+    'up_sample': '2020-11-24 19:36:43.877652',
+    'down_sample': '2020-11-24 19:39:32.246971'
 }
 
 if __name__ == '__main__':
@@ -37,7 +33,6 @@ if __name__ == '__main__':
     if not experiment_datetime:
         raise ValueError('Configuration <{}> for <{}> not found!'.format(experiment_datetime, experiment_type))
 
-    start_time = time.time()
     for fold_n in trange(5, desc='folds'):
 
         log_val_str = LOG_VAL_STR.format('slim', experiment_type, experiment_datetime, fold_n)
@@ -82,18 +77,17 @@ if __name__ == '__main__':
 
         full_metrics = dict()
         full_raw_metrics = dict()
-        
         for trait in DEMO_TRAITS:
             user_groups = user_groups_all_traits[trait]
-            _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
-            
-            #_, metrics, metrics_raw = eval_proced2_beyond_accuracy(preds=preds,
-            #                                                         true=true,
-            #                                                         tag='test',
-            #                                                         user_groups=user_groups,
-            #                                                         tids_path=tids_path,
-            #                                                         entropy_norm=True)
-            
+            # _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
+
+            _, metrics, metrics_raw = eval_proced2_beyond_accuracy(preds=preds,
+                                                                   true=true,
+                                                                   tag='test',
+                                                                   user_groups=user_groups,
+                                                                   tids_path=tids_path,
+                                                                   entropy_norm=True)
+
             full_metrics.update(metrics)
             full_raw_metrics.update(metrics_raw)
 
@@ -102,9 +96,5 @@ if __name__ == '__main__':
         summ.flush()
 
         # Saving results and predictions
-        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
-        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
-    
-    exec_time = (time.time() - start_time)
-    print("--- %s seconds ---" % exec_time)
-    #pdb.set_trace()
+        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics_beyond_accuracy.pkl'))
+        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics_beyond_accuracy.pkl'))

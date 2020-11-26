@@ -1,13 +1,11 @@
 import bottleneck as bn
 import numpy as np
+import pandas as pd
 from scipy import sparse as sp
 from typing import List
 
-from conf import LEVELS
+from conf import LEVELS, TRACKS_PATH
 from utils.data_splitter import UserGroup
-
-import pandas as pd
-import pdb
 
 
 def NDCG_at_k_batch(logits, y_true, k=10):
@@ -170,12 +168,12 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
     return recall
 
+
 def DiversityShannon_at_k_batch(logits,
-                                 tids_path,
-                                 k=10,
-                                 entropy_normalized=True,
-                                 tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
-    
+                                tids_path,
+                                k=10,
+                                entropy_normalized=True,
+                                tracklist_path=TRACKS_PATH):
     """
     :param logits: the un-normalised predictions
     :param tids_path: path to the mapping to original track ids
@@ -185,80 +183,79 @@ def DiversityShannon_at_k_batch(logits,
     :return: Diversity based on Shannon entropy
     """
     # TODO: create general (track_id -- artist_id) index for speed and beauty
-    
+
     n = logits.shape[0]
     dummy_column = np.arange(n).reshape(n, 1)
-    
+
     # getting top k indicies
     idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
     topk_part = logits[dummy_column, idx_topk_part]
     idx_part = np.argsort(-topk_part, axis=1)
     idx_topk = idx_topk_part[dummy_column, idx_part]
-    
+
     # mapping back to original indicies
     tids = pd.read_csv(tids_path)
-    
-    orig_idx_topk = np.empty((0,k), int)
+    tids = tids.set_index('new_track_id')
+
+    orig_idx_topk = np.empty((0, k), int)
     for user in idx_topk:
         orig_idx_topk = np.append(orig_idx_topk, np.array([tids.loc[user]['track_id']]), axis=0)
-    
+
     # loading track names
     track_names = pd.read_csv(tracklist_path, sep='\t', header=None)
-    
+
     # # creating batch-local (track -- artist) index
     # # hoping to save a bit of time while calculating histograms for each user
     batch_recommended = set(np.concatenate(orig_idx_topk))
     artist_idx = track_names.loc[batch_recommended][0]
-    
+
     # calculating diversity
     diversity = np.array([])
     for user in orig_idx_topk:
-        user_histogram = artist_idx.loc[user].value_counts() / k # WE EVALUATE TOP K RECOMMENDED
+        user_histogram = artist_idx.loc[user].value_counts() / k  # WE EVALUATE TOP K RECOMMENDED
         user_entropy = -np.sum(user_histogram * np.log2(user_histogram))
         artist_range = len(user_histogram)
         if entropy_normalized and artist_range > 1:
-            user_entropy = user_entropy/np.log2(artist_range)
+            user_entropy = user_entropy / np.log2(artist_range)
         diversity = np.append(diversity, user_entropy)
-    
-    # calculating coverage because we can
-    
-    # pdb.set_trace()
+
     return diversity
+
 
 def Coverage_at_k_batch(logits,
                         k=10):
-    
     """
     :param logits: the un-normalised predictions
     :param k: cut-off value
     :return: Coverage - proportion of items recommended to at least one user (at k)
     """
     # TODO: create general (track_id -- artist_id) index for speed and beauty
-    
+
     n_users = logits.shape[0]
     n_items = logits.shape[1]
     dummy_column = np.arange(n_users).reshape(n_users, 1)
-    
+
     # getting top k indicies
     idx_topk_part = bn.argpartition(-logits, k, axis=1)[:, :k]
     topk_part = logits[dummy_column, idx_topk_part]
     idx_part = np.argsort(-topk_part, axis=1)
     idx_topk = idx_topk_part[dummy_column, idx_part]
-    
+
     batch_recommended = set(np.concatenate(idx_topk))
-    
-    coverage = len(batch_recommended)/n_items
+
+    coverage = len(batch_recommended) / n_items
 
     return coverage
 
+
 ## eval_proced version with diversity and coverage
 def eval_proced2_beyond_accuracy(preds: np.ndarray,
-                 true: np.ndarray,
-                 tag: str,
-                 user_groups: List[UserGroup],
-                 tids_path: str,
-                 entropy_norm=True,
-                 tracklist_path="/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/song_ids.txt"):
+                                 true: np.ndarray,
+                                 tag: str,
+                                 user_groups: List[UserGroup],
+                                 tids_path: str,
+                                 entropy_norm=True,
+                                 tracklist_path=TRACKS_PATH):
     '''
     Performs the evaluation procedure.
     :param preds: predictions
@@ -273,23 +270,25 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
             metrics_raw, dictionary of the metrics (not averaged) for high group, and low group
     '''
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
-    
+
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
-    
+
     metrics = dict()
     metrics_raw = dict()
     trait = user_groups[0].type
     for lev in LEVELS:
-        for metric_name, metric in zip([
-                                        'ndcg',
-                                        'recall',
-                                        'coverage',
-                                        'diversity'],
-                                       [
-                                        NDCG_binary_at_k_batch,
-                                        Recall_binary_at_k_batch,
-                                        Coverage_at_k_batch,
-                                        DiversityShannon_at_k_batch]):
+        for metric_name, metric in zip(
+                [
+                    #'ndcg',
+                    #'recall',
+                    'coverage',
+                    'diversity'],
+                [
+                    #NDCG_binary_at_k_batch,
+                    #Recall_binary_at_k_batch,
+                    Coverage_at_k_batch,
+                    DiversityShannon_at_k_batch
+                ]):
 
             # Compute metrics for all users
             if metric_name == 'diversity':
@@ -313,9 +312,11 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
                     user_group_res)
                 metrics_raw['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = user_group_res
 
-    eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
-    
-    return eval_metric, metrics, metrics_raw
+    #eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
+
+    return 0, metrics, metrics_raw
+
+
 ##
 
 def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
@@ -331,9 +332,9 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
     '''
 
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
-    
+
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
-    #pdb.set_trace()
+    # pdb.set_trace()
     metrics = dict()
     metrics_raw = dict()
     trait = user_groups[0].type
