@@ -8,11 +8,11 @@ from tqdm import trange
 from algorithms.slim.slim_parallel import SLIM_parallel
 from conf import DATA_PATH, LOG_TE_STR, LOG_VAL_STR, OUT_DIR, DEMO_PATH, DEMO_TRAITS, DOWN_DATA_PATH, DOWN_DEMO_PATH
 from utils.data_splitter import DataSplitter
-from utils.eval import eval_proced
+from utils.eval import eval_proced, eval_proced2_beyond_accuracy
 from utils.helper import pickle_dump, pickle_load
 
 best_configs = {
-    'standard': '',
+    'standard': '2020-11-26 09:00:11.400231',# Oleg
     'up_sample': '',
     'down_sample': ''
 }
@@ -80,6 +80,14 @@ if __name__ == '__main__':
         for trait in DEMO_TRAITS:
             user_groups = user_groups_all_traits[trait]
             _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
+            
+            #_, metrics2, metrics_raw2 = eval_proced2_beyond_accuracy(preds=preds,
+            #                                                         true=true,
+            #                                                         tag='test',
+            #                                                         user_groups=user_groups,
+            #                                                         tids_path=tids_path,
+            #                                                         entropy_norm=True)
+            
             full_metrics.update(metrics)
             full_raw_metrics.update(metrics_raw)
 

@@ -280,21 +280,37 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
     metrics_raw = dict()
     trait = user_groups[0].type
     for lev in LEVELS:
-        for metric_name, metric in zip(['ndcg', 'recall'], [NDCG_binary_at_k_batch, Recall_binary_at_k_batch]):
+        for metric_name, metric in zip(['ndcg', 'recall', 'coverage', 'diversity'],
+                                       [NDCG_binary_at_k_batch,
+                                        Recall_binary_at_k_batch,
+                                        Coverage_at_k_batch,
+                                        DiversityShannon_at_k_batch]):
 
             # Compute metrics for all users
-            res = metric(preds, true, lev)
+            if metric_name == 'diversity':
+                res = metric(preds, tids_path, lev, entropy_norm, tracklist_path)
+            elif metric_name == 'coverage':
+                res = metric(preds, lev)
+            else:
+                res = metric(preds, true, lev)
             metrics['{}/{}_at_{}'.format(tag, metric_name, lev)] = np.mean(res)
             metrics_raw['{}/{}_at_{}'.format(tag, metric_name, lev)] = res
 
             # Split the metrics on user group basis
             for user_group in user_groups:
-                user_group_res = res[user_group.vd_idxs if tag == 'val' else user_group.te_idxs]
+                if metric_name == 'coverage':
+                    # pdb.set_trace()
+                    user_group_res = metric(preds[user_group.vd_idxs if tag == 'val' else user_group.te_idxs],
+                                            lev)
+                else:
+                    user_group_res = res[user_group.vd_idxs if tag == 'val' else user_group.te_idxs]
                 metrics['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = np.mean(
                     user_group_res)
                 metrics_raw['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = user_group_res
 
     eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
+    
+    pdb.set_trace()
     return eval_metric, metrics, metrics_raw
 ##
 
