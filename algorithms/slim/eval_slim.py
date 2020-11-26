@@ -12,7 +12,8 @@ from utils.eval import eval_proced, eval_proced2_beyond_accuracy
 from utils.helper import pickle_dump, pickle_load
 
 best_configs = {
-    'standard': '2020-11-26 09:00:11.400231',# Oleg
+    #'standard': '2020-11-26 09:00:11.400231',# Oleg
+    'standard': '',
     'up_sample': '',
     'down_sample': ''
 }
