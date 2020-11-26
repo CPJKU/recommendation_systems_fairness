@@ -170,7 +170,7 @@ def Recall_binary_at_k_batch(logits, y_true, k=10):
 
     return recall
 
-def DiversityShannon_Coverage_at_k_batch(logits,
+def DiversityShannon_at_k_batch(logits,
                                  tids_path,
                                  k=10,
                                  entropy_normalized=True,
@@ -182,12 +182,11 @@ def DiversityShannon_Coverage_at_k_batch(logits,
     :param k: cut-off value
     :param entropy_normalized: set to True to normalize entropy values
     :param tracklist_path: path to (id -- track name) index. ("song_ids.txt")
-    :return: (1) Diversity based on Shannon entropy (2) Coverage - proportion of items recommended to at least one user (at k)
+    :return: Diversity based on Shannon entropy
     """
     # TODO: create general (track_id -- artist_id) index for speed and beauty
     
     n = logits.shape[0]
-    m = logits.shape[1]
     dummy_column = np.arange(n).reshape(n, 1)
     
     # getting top k indicies
@@ -222,10 +221,9 @@ def DiversityShannon_Coverage_at_k_batch(logits,
         diversity = np.append(diversity, user_entropy)
     
     # calculating coverage because we can
-    coverage = len(batch_recommended)/m
     
     # pdb.set_trace()
-    return diversity, coverage
+    return diversity
 
 def Coverage_at_k_batch(logits,
                         k=10):
@@ -250,8 +248,7 @@ def Coverage_at_k_batch(logits,
     batch_recommended = set(np.concatenate(idx_topk))
     
     coverage = len(batch_recommended)/n_items
-    
-    pdb.set_trace()
+
     return coverage
 
 ## eval_proced version with diversity and coverage
@@ -316,7 +313,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
-    
+    pdb.set_trace()
     metrics = dict()
     metrics_raw = dict()
     trait = user_groups[0].type
