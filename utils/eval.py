@@ -280,8 +280,13 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
     metrics_raw = dict()
     trait = user_groups[0].type
     for lev in LEVELS:
-        for metric_name, metric in zip(['ndcg', 'recall', 'coverage', 'diversity'],
-                                       [NDCG_binary_at_k_batch,
+        for metric_name, metric in zip([
+                                        'ndcg',
+                                        'recall',
+                                        'coverage',
+                                        'diversity'],
+                                       [
+                                        NDCG_binary_at_k_batch,
                                         Recall_binary_at_k_batch,
                                         Coverage_at_k_batch,
                                         DiversityShannon_at_k_batch]):
@@ -310,7 +315,6 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
 
     eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
     
-    pdb.set_trace()
     return eval_metric, metrics, metrics_raw
 ##
 

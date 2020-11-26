@@ -11,6 +11,9 @@ from utils.data_splitter import DataSplitter
 from utils.eval import eval_proced, eval_proced2_beyond_accuracy
 from utils.helper import pickle_dump, pickle_load
 
+import pdb
+import time
+
 best_configs = {
     #'standard': '2020-11-26 09:00:11.400231',# Oleg
     'standard': '',
@@ -34,6 +37,7 @@ if __name__ == '__main__':
     if not experiment_datetime:
         raise ValueError('Configuration <{}> for <{}> not found!'.format(experiment_datetime, experiment_type))
 
+    start_time = time.time()
     for fold_n in trange(5, desc='folds'):
 
         log_val_str = LOG_VAL_STR.format('slim', experiment_type, experiment_datetime, fold_n)
@@ -78,11 +82,12 @@ if __name__ == '__main__':
 
         full_metrics = dict()
         full_raw_metrics = dict()
+        
         for trait in DEMO_TRAITS:
             user_groups = user_groups_all_traits[trait]
             _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
             
-            #_, metrics2, metrics_raw2 = eval_proced2_beyond_accuracy(preds=preds,
+            #_, metrics, metrics_raw = eval_proced2_beyond_accuracy(preds=preds,
             #                                                         true=true,
             #                                                         tag='test',
             #                                                         user_groups=user_groups,
@@ -99,3 +104,7 @@ if __name__ == '__main__':
         # Saving results and predictions
         pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
         pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
+    
+    exec_time = (time.time() - start_time)
+    print("--- %s seconds ---" % exec_time)
+    #pdb.set_trace()
