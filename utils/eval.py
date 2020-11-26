@@ -313,7 +313,7 @@ def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List
     assert tag in ['val', 'test'], "Tag can only be 'val' or 'test'!"
     
     true = sp.csr_matrix(true)  # temporary #TODO: to remove
-    pdb.set_trace()
+    #pdb.set_trace()
     metrics = dict()
     metrics_raw = dict()
     trait = user_groups[0].type
