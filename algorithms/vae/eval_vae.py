@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment_type", type=str, required=True, choices=['standard', 'up_sample', 'down_sample'])
-    parser.add_argument("--gpu", type=str, required=True)
+    parser.add_argument("--gpu", default="0", type=str, required=True)
     args = parser.parse_args()
 
     experiment_type = args.experiment_type

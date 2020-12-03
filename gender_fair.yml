@@ -1,4 +1,4 @@
-name: demo_bias
+name: gender_fair
 channels:
   - pytorch
   - anaconda
