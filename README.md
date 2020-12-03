@@ -1,6 +1,6 @@
 # Investiating Gender Fairness of Recommendation Algorithms in the Music Domain
 
-This repository accompanies the paper "Investigating Gender Fairness of Recommendation Algorithms in the Music Domain" by Alessandro B. Melchiorre, Navid Rekabsaz, Emilia Parada-Cabaleiro, Stefan Brandl, Oleg Lesota, and Markus Schedl.
+This repository accompanies the paper "`Investigating Gender Fairness of Recommendation Algorithms in the Music Domain`" by Alessandro B. Melchiorre, Navid Rekabsaz, Emilia Parada-Cabaleiro, Stefan Brandl, Oleg Lesota, and Markus Schedl.
 
 ## Installation
 
@@ -17,6 +17,10 @@ python3 setup.py develop
 ~~~
 
 ## Setup the data
+Data is available at `http://www.cp.jku.at/datasets/LFM-2b/`
+
+To sample the items as done in the paper, please check `item_sampler.ipynb` in `notebooks` folder.
+
 Data paths must be set in the `conf.py` file. In particular:
 - `DATA_PATH`: points to a .tsv file with columns [`user_id`,`track_id`,`play_count`].
 - `DEMO_PATH`: points to a .tsv file with columns [`user_name`,`country`,`age`,`gender`,`timestamp`].
