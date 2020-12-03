@@ -98,5 +98,5 @@ if __name__ == '__main__':
         summ.flush()
 
         # Saving results and predictions
-        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics_beyond_accuracy.pkl'))
-        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics_beyond_accuracy.pkl'))
+        pickle_dump(full_metrics, os.path.join(log_te_str, 'full_metrics.pkl'))
+        pickle_dump(full_raw_metrics, os.path.join(log_te_str, 'full_raw_metrics.pkl'))
