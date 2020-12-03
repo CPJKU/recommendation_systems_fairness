@@ -5,8 +5,9 @@ from scipy import sparse as sp
 
 def PopularItems(A: sp.csc_matrix, limit=50):
     """
-    Returns the most popular items
+    Returns the most popular items.
     :param A: user-item matrix
+    :param limit: how many popular items should be returned. The other entries will be filled with 0s.
     """
 
     n = A.shape[0]

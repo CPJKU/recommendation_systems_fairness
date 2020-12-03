@@ -16,15 +16,13 @@ class MultiDAE(nn.Module):
         list of values that defines the structure of the network on the encoder side (Optional)
     dp: float
         dropout value
-    wd: float
-        weight decay as regularization (Optional)
 
     """
 
     def __init__(self, p_dims, q_dims=None, dp=0.5):
         super().__init__()
 
-        ## Reading Parameters ##
+        # Reading Parameters #
         self.p_dims = return_dims(p_dims)
 
         if q_dims:

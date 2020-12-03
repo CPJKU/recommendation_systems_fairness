@@ -9,7 +9,7 @@ from algorithms.als.als import ALS
 from conf import LOG_VAL_STR, LOG_TE_STR, DATA_PATH, DEMO_PATH, OUT_DIR, DEMO_TRAITS, EXP_SEED, DOWN_DATA_PATH, \
     DOWN_DEMO_PATH
 from utils.data_splitter import DataSplitter
-from utils.eval import eval_proced2_beyond_accuracy
+from utils.eval import eval_proced
 from utils.helper import pickle_dump, pickle_load, reproducible
 
 best_configs = {
@@ -82,14 +82,13 @@ if __name__ == '__main__':
         full_raw_metrics = dict()
         for trait in DEMO_TRAITS:
             user_groups = user_groups_all_traits[trait]
-            # _, metrics, metrics_raw = eval_proced(preds, true, 'test', user_groups)
 
-            _, metrics, metrics_raw = eval_proced2_beyond_accuracy(preds=preds,
-                                                                   true=true,
-                                                                   tag='test',
-                                                                   user_groups=user_groups,
-                                                                   tids_path=tids_path,
-                                                                   entropy_norm=True)
+            _, metrics, metrics_raw = eval_proced(preds=preds,
+                                                  true=true,
+                                                  tag='test',
+                                                  user_groups=user_groups,
+                                                  tids_path=tids_path,
+                                                  entropy_norm=True)
 
             full_metrics.update(metrics)
             full_raw_metrics.update(metrics_raw)

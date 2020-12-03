@@ -248,16 +248,11 @@ def Coverage_at_k_batch(logits,
     return coverage
 
 
-## eval_proced version with diversity and coverage
-def eval_proced2_beyond_accuracy(preds: np.ndarray,
-                                 true: np.ndarray,
-                                 tag: str,
-                                 user_groups: List[UserGroup],
-                                 tids_path: str,
-                                 entropy_norm=True,
-                                 tracklist_path=TRACKS_PATH):
+def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup], tids_path: str,
+                entropy_norm=True,
+                tracklist_path=TRACKS_PATH):
     '''
-    Performs the evaluation procedure.
+    Performs the evaluation procedure. Considers both accuracy and beyond-accuracy metrics
     :param preds: predictions
     :param true: true values
     :param tag: should be either val or test
@@ -279,13 +274,13 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
     for lev in LEVELS:
         for metric_name, metric in zip(
                 [
-                    #'ndcg',
-                    #'recall',
+                    'ndcg',
+                    'recall',
                     'coverage',
                     'diversity'],
                 [
-                    #NDCG_binary_at_k_batch,
-                    #Recall_binary_at_k_batch,
+                    NDCG_binary_at_k_batch,
+                    Recall_binary_at_k_batch,
                     Coverage_at_k_batch,
                     DiversityShannon_at_k_batch
                 ]):
@@ -303,7 +298,6 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
             # Split the metrics on user group basis
             for user_group in user_groups:
                 if metric_name == 'coverage':
-                    # pdb.set_trace()
                     user_group_res = metric(preds[user_group.vd_idxs if tag == 'val' else user_group.te_idxs],
                                             lev)
                 else:
@@ -312,16 +306,14 @@ def eval_proced2_beyond_accuracy(preds: np.ndarray,
                     user_group_res)
                 metrics_raw['{}/{}_{}/{}_at_{}'.format(tag, trait, user_group.name, metric_name, lev)] = user_group_res
 
-    #eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
+    eval_metric = metrics['{}/ndcg_at_50'.format(tag)]
 
-    return 0, metrics, metrics_raw
+    return eval_metric, metrics, metrics_raw
 
 
-##
-
-def eval_proced(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
+def eval_proced_old(preds: np.ndarray, true: np.ndarray, tag: str, user_groups: List[UserGroup]):
     '''
-    Performs the evaluation procedure.
+    Performs the evaluation procedure. It considers only accuracy metrics
     :param preds: predictions
     :param true: true values
     :param tag: should be either val or test

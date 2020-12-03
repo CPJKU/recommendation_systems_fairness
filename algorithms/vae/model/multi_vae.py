@@ -45,7 +45,7 @@ class MultiVAE(MultiDAE):
         dropout value
     betacap: float
         maximum value beta can reach (used for doanneal=True)
-    betastep: int
+    betasteps: int
         number of iteration on which to do the annealing  (used for doanneal=True)
     """
 
