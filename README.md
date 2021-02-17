@@ -25,8 +25,8 @@ Data paths must be set in the `conf.py` file. In particular:
 - `DATA_PATH`: points to a .tsv file with columns [`user_id`,`track_id`,`play_count`].
 - `DEMO_PATH`: points to a .tsv file with columns [`user_name`,`country`,`age`,`gender`,`timestamp`].
 - `TRACKS_PATH`: points to a .tsv file with columns [`track_artist`,`track_name`].
-- `DOWN_DATA_PATH`: similar to `DATA_PATH` but contains the balanced dataset.
-- `DOWN_DEMO_PATH`: similar to `DEMO_PATH` but contains the balanced dataset.
+- `DOWN_DATA_PATH`: similar to `DATA_PATH` but contains the balanced dataset (optional).
+- `DOWN_DEMO_PATH`: similar to `DEMO_PATH` but contains the balanced dataset (optional).
 - `OUT_DIR`: where the processed datasets (e.g train/val/test data for fold 0).
 ## Run an experiment (Train + Validation)
 `algorithms` contains all the algorithms used in the project. Move to the folder of the algorithm of your choice (e.g. `slim`)
