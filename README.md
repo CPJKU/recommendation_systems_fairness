@@ -122,3 +122,10 @@ The best configuration for each algorithm and for each fold is located in:
 ~~~
 cd res/slim/<experiment_type>-<timestamp_start_experiment>/val/<fold-number>/best_config.pkl
 ~~~
+
+### Significance Testing
+The significant testing is located in `signigicance_testing` folder. Code is in R and Jupyter notebook.
+For instructions, refer to the README in the folder.
+~~~
+cd significance_testing
+~~~
