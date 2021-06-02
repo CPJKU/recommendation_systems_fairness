@@ -1,6 +1,5 @@
 import argparse
 import os
-
 from datetime import datetime
 from scipy import sparse as sp
 from sklearn.model_selection import ParameterGrid
@@ -17,7 +16,8 @@ from utils.helper import pickle_dump, reproducible
 grid = {
     "factors": [10, 100, 1000],  # the bigger the better
     "iterations": [500, 1000],
-    "regularization": [1e-3, 1e-4]
+    "regularization": [1e-3, 1e-4],
+    "alpha": [20]
 }
 pg = ParameterGrid(grid)
 
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
             summ = SummaryWriter(os.path.join(log_val_str, str(config)))
 
-            Atild = ALS(A, config['factors'], config['regularization'], config['iterations'])
+            Atild = ALS(A, config['alpha'], config['factors'], config['regularization'], config['iterations'])
 
             # Only focusing on validation data
             Atild = Atild[:sp_vd_tr_data.shape[0]]
