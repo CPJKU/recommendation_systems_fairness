@@ -1,6 +1,5 @@
 import argparse
 import os
-
 from scipy import sparse as sp
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import trange
@@ -69,7 +68,8 @@ if __name__ == '__main__':
 
         A_test = sp.csr_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
 
-        Atild_test = ALS(A_test, best_config['factors'], best_config['regularization'], best_config['iterations'])
+        Atild_test = ALS(A_test, best_config['alpha'], best_config['factors'], best_config['regularization'],
+                         best_config['iterations'])
 
         Atild_test = Atild_test[:sp_te_tr_data.shape[0]]
         # Removing entries from training data
