@@ -5,7 +5,7 @@ from scipy import sparse as sp
 def ALS(A: sp.csr_matrix, alpha: int, factors: int, regularization: float, iter: int):
     '''
     :param A: Rating matrix nxm where m in the number of items. Must be a csr_matrix
-    :param alpha: controls the confidence value (see original paper Collaborative Filtering for Implicit Datasets)
+    :param alpha: controls the confidence value (see original paper Collaborative Filtering for Implicit Data, Hu et al.)
     :param factors: embedding size
     :param regularization: regularization factor
     :param iter: number of iterations for ALS

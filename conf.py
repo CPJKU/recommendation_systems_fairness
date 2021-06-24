@@ -20,18 +20,18 @@ VAE_MAX_EPOCHS = 100
 VAE_LOG_VAL_EVERY = 5
 
 # Saving path
-# Structure is res/{ algorithm name }/{ experiment type }--{ date and time }/(val-test)/{ seed or fold_n }
-LOG_VAL_STR = '../../res/{}/{}--{}/val/{}'
-LOG_TE_STR = '../../res/{}/{}--{}/test/{}'
+# Structure is lfm2b_res/{ algorithm name }/{ experiment type }--{ date and time }/(val-test)/{ seed or fold_n }
+LOG_VAL_STR = '../../lfm2b_res/{}/{}--{}/val/{}'
+LOG_TE_STR = '../../lfm2b_res/{}/{}--{}/test/{}'
 
-DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_inter.txt'
-DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_demo.txt'
-TRACKS_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_tracks.txt'
+DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_lfm_1b_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_inter.txt'
+DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_lfm_1b_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_demo.txt'
+TRACKS_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_lfm_1b_pc_gt_1_user_gte_5_song_gte_5/sampled_100000_items_tracks.txt'
 
 DOWN_DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/down_sampled_inter.txt'
 DOWN_DEMO_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/down_sampled_demo.txt'
 
-OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/data/{}/'
+OUT_DIR = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_lfm_1b_pc_gt_1_user_gte_5_song_gte_5/data/{}/'
 
 # Paths for quick tests
 # DATA_PATH = '/share/cp/datasets/LFM/LFM-2b/IPM/datasets/user_song_regexp_since_2016_pc_gt_1_user_gte_5_song_gte_5/sampled_1000_items_inter.txt'
