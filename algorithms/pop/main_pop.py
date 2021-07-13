@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
         A_test = sp.csc_matrix(sp.vstack((sp_te_tr_data, sp_tr_data)))
 
-        Atild_test = PopularItems(A)
+        Atild_test = PopularItems(A_test)
 
         # Only focusing on test data
         Atild_test = Atild_test[:sp_te_tr_data.shape[0]]
